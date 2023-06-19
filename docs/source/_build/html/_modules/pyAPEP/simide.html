@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pyAPEP.simide &mdash; pyAPEP 1.0.0 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="canonical" href="https://nahyeonan.github.io/pyAPEP/_modules/pyAPEP/simide.html" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> pyAPEP
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pyAPEP.html">pyAPEP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../FAQs.html">FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">pyAPEP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>pyAPEP.simide</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pyAPEP.simide</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module contains objects to characterize the pure-component adsorption</span>
+<span class="sd">isotherms from experimental or simulated data. These will be fed into the</span>
+<span class="sd">IAST functions in pyiast.py.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="c1"># %% Import python packages required</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">differential_evolution</span>
+<span class="c1"># %% Define a class: IdealColumn</span>
+
+<span class="k">def</span> <span class="nf">check_isotherm</span><span class="p">(</span><span class="n">n_comp</span><span class="p">,</span> <span class="n">isotherm_fun</span><span class="p">,):</span>
+    <span class="n">P_test</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+        <span class="n">P_test</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">10</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n_comp</span><span class="p">))</span>
+    <span class="n">T_test</span> <span class="o">=</span> <span class="p">[</span><span class="mi">300</span><span class="p">,</span> <span class="mi">320</span><span class="p">,</span> <span class="mi">340</span><span class="p">]</span>
+    <span class="n">q_test_res</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">T_t</span> <span class="ow">in</span> <span class="n">T_test</span><span class="p">:</span>
+        <span class="n">q_4_P_t</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">P_t</span> <span class="ow">in</span> <span class="n">P_test</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">q_t_tmp</span> <span class="o">=</span> <span class="n">isotherm_fun</span><span class="p">(</span><span class="n">P_t</span><span class="p">,</span> <span class="n">T_t</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;ERROR: the input should be in the form of &quot;isotherm_fun(P, T)&quot; &#39;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="n">q_4_P_t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q_t_tmp</span><span class="p">)</span>
+        <span class="n">q_test_res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q_4_P_t</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="IdealColumn"><a class="viewcode-back" href="../../simide.html#pyAPEP.simide.IdealColumn">[docs]</a><span class="k">class</span> <span class="nc">IdealColumn</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to characterize pure-component isotherm data with an analytical model.</span>
+<span class="sd">    Data fitting is done during instantiation.</span>
+<span class="sd">    </span>
+<span class="sd">    Models supported are as follows. Here, :math:`L` is the gas uptake,</span>
+<span class="sd">    :math:`P` is pressure (fugacity technically).</span>
+<span class="sd">    </span>
+<span class="sd">    * Langmuir isotherm model</span>
+<span class="sd">    </span>
+<span class="sd">    .. math::</span>
+<span class="sd">    </span>
+<span class="sd">        L(P) = M \\frac{KP}{1+KP},</span>
+<span class="sd">        </span>
+<span class="sd">    * Quadratic isotherm model</span>
+<span class="sd">    </span>
+<span class="sd">    .. math::</span>
+<span class="sd">    </span>
+<span class="sd">        L(P) = M \\frac{(K_a + 2 K_b P)P}{1+K_aP+K_bP^2}</span>
+<span class="sd">        </span>
+<span class="sd">    * Brunauer-Emmett-Teller (BET) adsorption isotherm</span>
+<span class="sd">    </span>
+<span class="sd">    .. math::</span>
+<span class="sd">    </span>
+<span class="sd">        L(P) = M\\frac{K_A P}{(1-K_B P)(1-K_B P+ K_A P)}</span>
+<span class="sd">        </span>
+<span class="sd">    * Dual-site Langmuir (DSLangmuir) adsorption isotherm</span>
+<span class="sd">    </span>
+<span class="sd">    .. math::</span>
+<span class="sd">    </span>
+<span class="sd">        L(P) = M_1\\frac{K_1 P}{1+K_1 P} +  M_2\\frac{K_2 P}{1+K_2 P}</span>
+<span class="sd">        </span>
+<span class="sd">    * Asymptotic approximation to the Temkin Isotherm</span>
+<span class="sd">    (see DOI: 10.1039/C3CP55039G)</span>
+<span class="sd">    </span>
+<span class="sd">    .. math::</span>
+<span class="sd">    </span>
+<span class="sd">        L(P) = M\\frac{KP}{1+KP} + M \\theta (\\frac{KP}{1+KP})^2 (\\frac{KP}{1+KP} -1)</span>
+<span class="sd">        </span>
+<span class="sd">    * Henry&#39;s law. Only use if your data is linear, and do not necessarily trust</span>
+<span class="sd">      IAST results from Henry&#39;s law if the result required an extrapolation</span>
+<span class="sd">      of your data; Henry&#39;s law is unrealistic because the adsorption sites</span>
+<span class="sd">      will saturate at higher pressures.</span>
+<span class="sd">      </span>
+<span class="sd">    .. math::</span>
+<span class="sd">    </span>
+<span class="sd">        L(P) = K_H P</span>
+<span class="sd">        </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="IdealColumn.__init__"><a class="viewcode-back" href="../../simide.html#pyAPEP.simide.IdealColumn.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_comp</span><span class="p">,</span> <span class="n">isotherm_fun</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,):</span>
+        <span class="c1"># The isotherm funciton should be a function of both pressure and temperature</span>
+        <span class="k">if</span> <span class="n">isotherm_fun</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">iso_example</span><span class="p">(</span><span class="n">P_part</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
+                <span class="n">bP1</span> <span class="o">=</span> <span class="n">P_part</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mf">0.3</span>
+                <span class="n">bP2</span> <span class="o">=</span> <span class="n">P_part</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="mf">0.1</span>
+                <span class="n">bP3</span> <span class="o">=</span> <span class="n">P_part</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="mf">0.8</span>
+                <span class="n">bP_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">bP1</span><span class="p">,</span> <span class="n">bP2</span><span class="p">,</span> <span class="n">bP3</span><span class="p">])</span>
+                <span class="n">bP_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">bP_arr</span><span class="p">)</span>
+                <span class="n">nume</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span><span class="o">*</span><span class="n">bP_arr</span>
+                <span class="n">deno</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">bP_sum</span>
+                <span class="n">q_return</span> <span class="o">=</span> <span class="n">nume</span> <span class="o">/</span> <span class="n">deno</span>
+                <span class="k">return</span> <span class="n">q_return</span>
+            <span class="n">isotherm_fun</span> <span class="o">=</span> <span class="n">iso_example</span>
+
+        <span class="n">check_res</span> <span class="o">=</span> <span class="n">check_isotherm</span><span class="p">(</span><span class="n">n_comp</span><span class="p">,</span> <span class="n">isotherm_fun</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">check_res</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_isofun</span> <span class="o">=</span> <span class="n">isotherm_fun</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_n_comp</span> <span class="o">=</span> <span class="n">n_comp</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_str</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;isotherm&#39;</span> <span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                        <span class="s1">&#39;feedcond&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                        <span class="s1">&#39;opercond&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,}</span>
+            
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Instantiation. A `IdealColumn` class is instantiated by passing it the</span>
+<span class="sd">        pure-component adsorption isotherm in the form of a Pandas DataFrame.</span>
+<span class="sd">        The least squares data fitting is done here.</span>
+<span class="sd">        </span>
+<span class="sd">        :param n_comp: DataFrame pure-component adsorption isotherm data</span>
+<span class="sd">        :param isotherm_fun: String key for loading column in df</span>
+<span class="sd">        </span>
+<span class="sd">        :rtype: IdealColumn</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="IdealColumn.isofunct"><a class="viewcode-back" href="../../simide.html#pyAPEP.simide.IdealColumn.isofunct">[docs]</a>    <span class="k">def</span> <span class="nf">isofunct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_comp</span><span class="p">,</span> <span class="n">isotherm_fun</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Given stored model parameters, compute loading at pressure P.</span>
+<span class="sd">        </span>
+<span class="sd">        :param pressure: Float or Array pressure (in corresponding units as df</span>
+<span class="sd">            in instantiation)</span>
+<span class="sd">        :return: predicted loading at pressure P (in corresponding units as df</span>
+<span class="sd">            in instantiation) using fitted model params in `self.params`.</span>
+<span class="sd">        :rtype: Float or Array</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">check_isotherm</span><span class="p">(</span><span class="n">n_comp</span><span class="p">,</span> <span class="n">isotherm_fun</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_isofun</span> <span class="o">=</span> <span class="n">isotherm_fun</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_n_comp</span> <span class="o">=</span> <span class="n">n_comp</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Dim. of function output&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;should be equal to n_comp&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="IdealColumn.feedcond"><a class="viewcode-back" href="../../simide.html#pyAPEP.simide.IdealColumn.feedcond">[docs]</a>    <span class="k">def</span> <span class="nf">feedcond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P_feed</span><span class="p">,</span> <span class="n">T_feed</span><span class="p">,</span> <span class="n">y_feed</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Input feed condtions</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_feed</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_comp</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Dim. of y_feed (feed composition)&quot;</span> <span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;should be equal to n_comp&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        
+        <span class="n">y_feed_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y_feed</span><span class="p">)</span><span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y_feed</span><span class="p">))</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="n">y_feed_norm</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y_feed_norm</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">y_feed_norm</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.0001</span><span class="p">:</span>
+                <span class="n">y_feed_norm</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>  <span class="o">=</span> <span class="mf">0.0001</span>
+            <span class="k">elif</span> <span class="n">y_feed_norm</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.9999</span><span class="p">:</span>
+                <span class="n">y_feed_norm</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.9999</span>
+        
+        <span class="n">y_feed_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y_feed_norm</span><span class="p">)</span><span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y_feed_norm</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_P_feed</span> <span class="o">=</span> <span class="n">P_feed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_T_feed</span> <span class="o">=</span> <span class="n">T_feed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_y_feed</span> <span class="o">=</span> <span class="n">y_feed_norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_str</span><span class="p">[</span><span class="s1">&#39;feedcond&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="IdealColumn.opercond"><a class="viewcode-back" href="../../simide.html#pyAPEP.simide.IdealColumn.opercond">[docs]</a>    <span class="k">def</span> <span class="nf">opercond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">P_high</span><span class="p">,</span> <span class="n">P_low</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Input operation condtions</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_P_high</span> <span class="o">=</span> <span class="n">P_high</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_P_low</span> <span class="o">=</span> <span class="n">P_low</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_str</span><span class="p">[</span><span class="s1">&#39;opercond&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span></div>
+    
+<div class="viewcode-block" id="IdealColumn.runideal"><a class="viewcode-back" href="../../simide.html#pyAPEP.simide.IdealColumn.runideal">[docs]</a>    <span class="k">def</span> <span class="nf">runideal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tol</span> <span class="o">=</span> <span class="mf">1E-4</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Run the ideal PSA simulation.</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">isomix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_isofun</span>
+        <span class="n">y_feed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y_feed</span>
+        <span class="n">P_feed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_P_feed</span>
+        <span class="n">T_feed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_T_feed</span>
+        <span class="n">P_high</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_P_high</span>
+        <span class="n">P_low</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_P_low</span>
+        <span class="n">P_part_feed</span> <span class="o">=</span> <span class="n">P_high</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y_feed</span><span class="p">)</span>
+        <span class="n">n_comp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_comp</span>
+        <span class="n">q_sat</span> <span class="o">=</span> <span class="n">isomix</span><span class="p">(</span><span class="n">P_part_feed</span><span class="p">,</span> <span class="n">T_feed</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">x2x</span><span class="p">(</span><span class="n">x_init</span><span class="p">):</span>
+            <span class="n">P_part_des</span> <span class="o">=</span> <span class="n">P_low</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x_init</span><span class="p">)</span>
+            <span class="n">q_des</span> <span class="o">=</span> <span class="n">isomix</span><span class="p">(</span><span class="n">P_part_des</span><span class="p">,</span> <span class="n">T_feed</span><span class="p">)</span>
+            <span class="n">dq</span> <span class="o">=</span> <span class="n">q_sat</span> <span class="o">-</span> <span class="n">q_des</span>
+            <span class="n">dq</span><span class="p">[</span><span class="n">dq</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">dq_tot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dq</span><span class="p">)</span><span class="o">+</span> <span class="mf">1E-9</span>
+            <span class="n">x_new</span> <span class="o">=</span> <span class="n">dq</span><span class="o">/</span><span class="n">dq_tot</span>
+            <span class="k">return</span> <span class="n">x_new</span>
+        <span class="n">x_guess_all</span> <span class="o">=</span> <span class="n">x2x</span><span class="p">(</span><span class="n">y_feed</span><span class="p">)</span>
+        <span class="n">x_guess</span> <span class="o">=</span> <span class="n">x_guess_all</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;x_guess is:&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">x_guess</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">err_x2x</span><span class="p">(</span><span class="n">x_gu</span><span class="p">):</span>
+            <span class="n">Penalty</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">xx</span><span class="p">,</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x_gu</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x_gu</span><span class="p">))):</span>
+                <span class="k">if</span> <span class="n">xx</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">Penalty</span> <span class="o">=</span> <span class="n">Penalty</span> <span class="o">+</span> <span class="mi">1000</span><span class="o">*</span><span class="p">(</span><span class="n">xx</span> <span class="o">-</span> <span class="mi">0</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+                    <span class="n">x_gu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1E-6</span>
+                <span class="k">elif</span> <span class="n">xx</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">Penalty</span> <span class="o">=</span> <span class="n">Penalty</span> <span class="o">+</span> <span class="mi">1000</span><span class="o">*</span><span class="p">(</span><span class="n">xx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+                    <span class="n">x_gu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="mf">1E-6</span>
+            <span class="n">x_last</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x_gu</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">x_last</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">Penalty</span> <span class="o">=</span> <span class="n">Penalty</span> <span class="o">+</span> <span class="mi">1000</span><span class="o">*</span><span class="p">(</span><span class="n">x_last</span> <span class="o">-</span> <span class="mi">0</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+                <span class="n">x_last</span> <span class="o">=</span> <span class="mf">1E-6</span>
+            <span class="k">elif</span> <span class="n">x_last</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">Penalty</span> <span class="o">=</span> <span class="n">Penalty</span> <span class="o">+</span> <span class="mi">1000</span><span class="o">*</span><span class="p">(</span><span class="n">x_last</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+                <span class="n">x_last</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="mf">1E-6</span>
+            <span class="n">x_all</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x_gu</span><span class="p">),</span> <span class="n">x_last</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">x_all</span><span class="p">)</span>
+            <span class="n">x_recal</span> <span class="o">=</span> <span class="n">x2x</span><span class="p">(</span><span class="n">x_all</span><span class="p">)</span>
+            <span class="n">err_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">x_all</span> <span class="o">-</span> <span class="n">x_recal</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">Penalty</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">Penalty</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">err_x</span>
+
+        <span class="n">optres</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">err_x2x</span><span class="p">,</span> <span class="n">x_guess</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;Nelder-mead&#39;</span><span class="p">)</span>
+        <span class="n">x_guess</span> <span class="o">=</span> <span class="n">optres</span><span class="o">.</span><span class="n">x</span>
+        <span class="k">if</span> <span class="n">optres</span><span class="o">.</span><span class="n">fun</span> <span class="o">&gt;</span> <span class="n">tol</span><span class="p">:</span>
+            <span class="n">optres_prev</span> <span class="o">=</span> <span class="n">optres</span>
+            <span class="n">optres</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">err_x2x</span><span class="p">,</span> <span class="n">x_guess</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;L-BFGS-B&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">optres</span><span class="o">.</span><span class="n">fun</span> <span class="o">&gt;</span> <span class="n">optres_prev</span><span class="o">.</span><span class="n">fun</span><span class="p">:</span>
+                <span class="n">optres</span> <span class="o">=</span> <span class="n">optres_prev</span>
+        <span class="k">if</span> <span class="n">optres</span><span class="o">.</span><span class="n">fun</span> <span class="o">&gt;</span> <span class="n">tol</span><span class="p">:</span>
+            <span class="n">optres_prev</span> <span class="o">=</span> <span class="n">optres</span>
+            <span class="n">bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">n_comp</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+            <span class="n">bounds</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">optres</span> <span class="o">=</span> <span class="n">differential_evolution</span><span class="p">(</span><span class="n">err_x2x</span><span class="p">,</span> <span class="n">bounds</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">optres</span><span class="o">.</span><span class="n">fun</span> <span class="o">&gt;</span> <span class="n">optres_prev</span><span class="o">.</span><span class="n">fun</span><span class="p">:</span>
+                <span class="n">optres</span> <span class="o">=</span> <span class="n">optres_prev</span>
+
+        <span class="n">x_sol</span> <span class="o">=</span> <span class="n">optres</span><span class="o">.</span><span class="n">x</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Funciton value of optimizaiton is &#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">optres</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+        <span class="n">x_last_sol</span> <span class="o">=</span> <span class="mi">1</span><span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x_sol</span><span class="p">)</span>
+        <span class="n">x_purity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x_sol</span><span class="p">,</span> <span class="n">x_last_sol</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_ideal</span> <span class="o">=</span> <span class="n">x_purity</span>
+
+        <span class="k">return</span> <span class="n">x_purity</span></div>
+
+<div class="viewcode-block" id="IdealColumn.__str__"><a class="viewcode-back" href="../../simide.html#pyAPEP.simide.IdealColumn.__str__">[docs]</a>    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">str_out</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_str</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">str_out</span> <span class="o">=</span> <span class="n">str_out</span> <span class="o">+</span> <span class="n">kk</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_str</span><span class="p">[</span><span class="n">kk</span><span class="p">]:</span>
+                <span class="n">str_out</span> <span class="o">=</span> <span class="n">str_out</span> <span class="o">+</span> <span class="s1">&#39;: True</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">str_out</span> <span class="o">=</span> <span class="n">str_out</span> <span class="o">+</span> <span class="s1">&#39;: False</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="k">return</span> <span class="n">str_out</span></div></div>
+
+<span class="c1"># %% Onece we have an isotherm curve,</span>
+<span class="k">def</span> <span class="nf">iso_ex</span><span class="p">(</span><span class="n">P_part</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
+        <span class="n">bP1</span> <span class="o">=</span> <span class="n">P_part</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mf">0.3</span>
+        <span class="n">bP2</span> <span class="o">=</span> <span class="n">P_part</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="mf">0.01</span>
+        <span class="n">bP3</span> <span class="o">=</span> <span class="n">P_part</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="mf">0.8</span>
+        <span class="n">bP_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">bP1</span><span class="p">,</span> <span class="n">bP2</span><span class="p">,</span> <span class="n">bP3</span><span class="p">])</span>
+        <span class="n">bP_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">bP_arr</span><span class="p">)</span>
+        <span class="n">nume</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">])</span><span class="o">*</span><span class="n">bP_arr</span>
+        <span class="n">deno</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">bP_sum</span>
+        <span class="n">q_return</span> <span class="o">=</span> <span class="n">nume</span> <span class="o">/</span> <span class="n">deno</span>
+        <span class="k">return</span> <span class="n">q_return</span>
+<span class="c1">#c1_ideal = IdealColumn(3,iso_ex)</span>
+<span class="c1">#print(c1_ideal)</span>
+<span class="c1">#c1_ideal.feedcond(5,300,[0.4,0.4,0.5])</span>
+<span class="c1">#print(c1_ideal)</span>
+<span class="c1">#c1_ideal.opercond(5, 1)</span>
+<span class="c1">#print(c1_ideal)</span>
+
+<span class="c1"># %% Test the class</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">iso_ex2</span><span class="p">(</span><span class="n">P_part</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
+        <span class="n">bP1</span> <span class="o">=</span> <span class="n">P_part</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mf">0.3</span>
+        <span class="n">bP2</span> <span class="o">=</span> <span class="n">P_part</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="mf">0.01</span>
+        <span class="n">bP_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">bP1</span><span class="p">,</span> <span class="n">bP2</span><span class="p">,])</span>
+        <span class="n">bP_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">bP_arr</span><span class="p">)</span>
+        <span class="n">nume</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span><span class="o">*</span><span class="n">bP_arr</span>
+        <span class="n">deno</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">bP_sum</span>
+        <span class="n">q_return</span> <span class="o">=</span> <span class="n">nume</span> <span class="o">/</span> <span class="n">deno</span>
+        <span class="k">return</span> <span class="n">q_return</span>
+    <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+    <span class="n">p1</span> <span class="o">=</span> <span class="mi">5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+    <span class="n">p2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+    <span class="n">q_list_tmp</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">p11</span><span class="p">,</span> <span class="n">p22</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span><span class="n">p2</span><span class="p">):</span>
+        <span class="n">q_tmp</span> <span class="o">=</span> <span class="n">iso_ex2</span><span class="p">([</span><span class="n">p11</span><span class="p">,</span><span class="n">p22</span><span class="p">,],</span> <span class="mi">300</span><span class="p">)</span>
+        <span class="n">q_list_tmp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q_tmp</span><span class="p">)</span>
+    <span class="n">q_arr_ex</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">q_list_tmp</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p2</span><span class="p">,</span> <span class="n">q_arr_ex</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="n">ideal_c1</span> <span class="o">=</span> <span class="n">IdealColumn</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">iso_ex2</span><span class="p">)</span>
+
+    <span class="c1">#### Feed conditions: ####</span>
+    <span class="c1"># P = 5 bar</span>
+    <span class="c1"># T = 300 K</span>
+    <span class="c1"># y_feed = 40 %, 40 %, 20%</span>
+    <span class="n">ideal_c1</span><span class="o">.</span><span class="n">feedcond</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">],)</span>
+    <span class="c1">#ideal_c1 = IdealColumn()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">ideal_c1</span><span class="p">)</span>
+
+    <span class="c1">#### Operating conditions: ####</span>
+    <span class="c1"># P_high = 5 bar</span>
+    <span class="c1"># P_low  = 1 bar</span>
+    <span class="n">ideal_c1</span><span class="o">.</span><span class="n">opercond</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">ideal_c1</span><span class="p">)</span>
+
+    <span class="n">x_res</span> <span class="o">=</span> <span class="n">ideal_c1</span><span class="o">.</span><span class="n">runideal</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">x_res</span><span class="p">)</span>
+
+<span class="c1"># %%</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">iso_ex3</span><span class="p">(</span><span class="n">P_part</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
+        <span class="n">bP1</span> <span class="o">=</span> <span class="n">P_part</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mf">0.3</span>
+        <span class="n">bP2</span> <span class="o">=</span> <span class="n">P_part</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="mf">0.01</span>
+        <span class="n">bP3</span> <span class="o">=</span> <span class="n">P_part</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="mf">0.8</span>
+        <span class="n">bP_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">bP1</span><span class="p">,</span> <span class="n">bP2</span><span class="p">,</span> <span class="n">bP3</span><span class="p">])</span>
+        <span class="n">bP_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">bP_arr</span><span class="p">)</span>
+        <span class="n">nume</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">])</span><span class="o">*</span><span class="n">bP_arr</span>
+        <span class="n">deno</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">bP_sum</span>
+        <span class="n">q_return</span> <span class="o">=</span> <span class="n">nume</span> <span class="o">/</span> <span class="n">deno</span>
+        <span class="k">return</span> <span class="n">q_return</span>
+    <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+    <span class="n">p1</span> <span class="o">=</span> <span class="mi">5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+    <span class="n">p2</span> <span class="o">=</span> <span class="mi">1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+    <span class="n">p3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+    <span class="n">q_list_tmp</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">p11</span><span class="p">,</span> <span class="n">p22</span><span class="p">,</span> <span class="n">p33</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">p1</span><span class="p">,</span><span class="n">p2</span><span class="p">,</span><span class="n">p3</span><span class="p">):</span>
+        <span class="n">q_tmp</span> <span class="o">=</span> <span class="n">iso_ex3</span><span class="p">([</span><span class="n">p11</span><span class="p">,</span><span class="n">p22</span><span class="p">,</span><span class="n">p33</span><span class="p">],</span> <span class="mi">300</span><span class="p">)</span>
+        <span class="n">q_list_tmp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q_tmp</span><span class="p">)</span>
+    <span class="n">q_arr_ex</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">q_list_tmp</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">p3</span><span class="p">,</span> <span class="n">q_arr_ex</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="n">ideal_c1</span> <span class="o">=</span> <span class="n">IdealColumn</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">iso_ex3</span><span class="p">)</span>
+
+    <span class="c1">#### Feed conditions: ####</span>
+    <span class="c1"># P = 5 bar</span>
+    <span class="c1"># T = 300 K</span>
+    <span class="c1"># y_feed = 40 %, 40 %, 20%</span>
+    <span class="n">ideal_c1</span><span class="o">.</span><span class="n">feedcond</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">.2</span><span class="p">],)</span>
+    <span class="c1">#ideal_c1 = IdealColumn()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">ideal_c1</span><span class="p">)</span>
+
+    <span class="c1">#### Operating conditions: ####</span>
+    <span class="c1"># P_high = 5 bar</span>
+    <span class="c1"># P_low  = 1 bar</span>
+    <span class="n">ideal_c1</span><span class="o">.</span><span class="n">opercond</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">ideal_c1</span><span class="p">)</span>
+
+    <span class="n">x_res</span> <span class="o">=</span> <span class="n">ideal_c1</span><span class="o">.</span><span class="n">runideal</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">x_res</span><span class="p">)</span>
+
+
+<span class="c1"># %%</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, anna.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

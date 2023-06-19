@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Isotherm fitting module (pyAPEP.isofit) &mdash; pyAPEP 1.0.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="canonical" href="https://nahyeonan.github.io/pyAPEP/isofit.html" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Ideal PSA simulation module (pyAPEP.simide)" href="simide.html" />
+    <link rel="prev" title="pyAPEP" href="pyAPEP.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #BED2E0" >
+            <a href="index.html">
+            <img src="_static/pyAPEP.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="pyAPEP.html">pyAPEP</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Isotherm fitting module (<code class="xref py py-mod docutils literal notranslate"><span class="pre">pyAPEP.isofit</span></code>)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#usage">Usage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#finding-best-isotherm-function">1. Finding best isotherm function</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#fitting-isotherm-for-different-temperature">2. Fitting isotherm for different temperature</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#developing-mixuture-isotherm-with-iast">3. Developing mixuture isotherm with IAST</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#function-structures">Function structures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#theory">Theory</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#finding-best-isotherm-function-algorithm">Finding best isotherm function algorithm</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#adosption-at-different-temperature-using-heat-of-adsorption">Adosption at different temperature (using heat of adsorption)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ideal-adsorbed-solution-theory-iast">Ideal adsorbed solution theory (IAST)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="simide.html">Ideal PSA simulation module (<code class="xref py py-mod docutils literal notranslate"><span class="pre">pyAPEP.simide</span></code>)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simsep.html">Real PSA simulation module (<code class="xref py py-mod docutils literal notranslate"><span class="pre">pyAPEP.simsep</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Case%20studies.html">Case studies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FAQs.html">FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #BED2E0" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyAPEP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="pyAPEP.html">pyAPEP</a> &raquo;</li>
+      <li>Isotherm fitting module (<code class="xref py py-mod docutils literal notranslate"><span class="pre">pyAPEP.isofit</span></code>)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/isofit.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="isotherm-fitting-module-pyapep-isofit">
+<h1>Isotherm fitting module (<code class="xref py py-mod docutils literal notranslate"><span class="pre">pyAPEP.isofit</span></code>)<a class="headerlink" href="#isotherm-fitting-module-pyapep-isofit" title="Permalink to this heading"></a></h1>
+<p><code class="xref py py-mod docutils literal notranslate"><span class="pre">isofit</span></code> is a module used to define isotherm functions from pressure and uptake data samples. Three main functions are developed in this module—<code class="xref py py-mod docutils literal notranslate"><span class="pre">best_isomodel</span></code>, <code class="xref py py-mod docutils literal notranslate"><span class="pre">diff_T</span></code>, and <code class="xref py py-mod docutils literal notranslate"><span class="pre">IAST</span></code>. <code class="xref py py-mod docutils literal notranslate"><span class="pre">best_isomodel</span></code> automatically finds the best isotherm function for the pure component. <code class="xref py py-mod docutils literal notranslate"><span class="pre">diff_T</span></code> derives isotherms according to temperature and pressure, and <code class="xref py py-mod docutils literal notranslate"><span class="pre">IAST</span></code> derives mixture isotherms using single isotherms, respectively.</p>
+<p>First, import isofit into Python after installation.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pyapep.isofit</span> <span class="k">as</span> <span class="nn">isofit</span>
+</pre></div>
+</div>
+<p>In this module, three main functions exist.</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>Finding best isotherm function (<code class="xref py py-mod docutils literal notranslate"><span class="pre">isofit.best_isomodel</span></code>)</p></li>
+<li><p>Fitting isotherm for different temperature (<code class="xref py py-mod docutils literal notranslate"><span class="pre">isofit.fit_diffT</span></code>)</p></li>
+<li><p>Developing mixuture isotherm with IAST (<code class="xref py py-mod docutils literal notranslate"><span class="pre">isofit.IAST</span></code>)</p></li>
+</ol>
+</div></blockquote>
+<p>Detailed description of each function are described in next senction. The explanation include function usage, algorithm (or related theroy), and function structure.</p>
+<hr class="docutils" />
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this heading"></a></h2>
+<section id="finding-best-isotherm-function">
+<h3>1. Finding best isotherm function<a class="headerlink" href="#finding-best-isotherm-function" title="Permalink to this heading"></a></h3>
+<p><code class="xref py py-mod docutils literal notranslate"><span class="pre">best_isomodel</span></code> automatically finds the best isotherm function from a given pressure-uptake dataset with multiple isotherm and optimizer candidates. In this usage example, the isotherm function is found from a dummy dataset with gas uptake at four pressures (2, 3, 4, 5 bar). The function <code class="xref py py-mod docutils literal notranslate"><span class="pre">best_isomodel</span></code> returns 4 elements: isotherm function, estimated parameters of isotherm function, the type of isotherm, and validation error of the model.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Package import</span>
+<span class="kn">import</span> <span class="nn">pyapep.isofit</span> <span class="k">as</span> <span class="nn">isofit</span>
+
+<span class="c1"># Generate dummy data</span>
+<span class="n">P</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+<span class="n">q_comp1</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>     <span class="c1"># Gas adsorption of a component</span>
+
+<span class="c1"># Define pure isotherm of each component</span>
+<span class="n">iso1</span><span class="p">,</span> <span class="n">param1</span><span class="p">,</span> <span class="n">fntype1</span><span class="p">,</span> <span class="n">err1</span> <span class="o">=</span> <span class="n">isofit</span><span class="o">.</span><span class="n">best_isomodel</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">q_comp1</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="fitting-isotherm-for-different-temperature">
+<h3>2. Fitting isotherm for different temperature<a class="headerlink" href="#fitting-isotherm-for-different-temperature" title="Permalink to this heading"></a></h3>
+<p>To reflect the temperature influence on the adsorption equilibrium, adsorption isotherm data measured at different pressure and temperatures should be used in composing an isotherm model. <code class="xref py py-mod docutils literal notranslate"><span class="pre">fit_diffT</span></code> finds the isotherm model considering both pressure and temperature effects.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate a data dummy data</span>
+<span class="n">qm_dum</span> <span class="o">=</span> <span class="mf">4.5</span> <span class="c1"># mol/kg</span>
+<span class="n">K1_dum</span> <span class="o">=</span> <span class="mf">3.0</span> <span class="c1"># 1/bar</span>
+<span class="n">K2_dum</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="c1"># 1/(bar^2)</span>
+<span class="n">P_dum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span>
+<span class="n">T_dum</span> <span class="o">=</span> <span class="p">[</span><span class="mi">280</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="mi">305</span><span class="p">,</span> <span class="mi">310</span><span class="p">,</span> <span class="mi">320</span><span class="p">]</span> <span class="c1"># dummy T</span>
+<span class="n">dH_dum</span> <span class="o">=</span> <span class="mi">25000</span> <span class="c1"># J/mol : heat of adsorption</span>
+<span class="n">R_gas</span> <span class="o">=</span> <span class="mf">8.3145</span>
+<span class="n">T_ref</span> <span class="o">=</span> <span class="n">T_dum</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># Reference temperature = 300 K</span>
+
+<span class="n">q_dum</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">T</span> <span class="ow">in</span> <span class="n">T_dum</span><span class="p">:</span>
+   <span class="n">P_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">dH_dum</span><span class="o">/</span><span class="n">R_gas</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="o">/</span><span class="n">T_ref</span><span class="p">))</span><span class="o">*</span><span class="n">P_dum</span>
+   <span class="n">err_dum</span> <span class="o">=</span> <span class="mf">0.05</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">P_norm</span><span class="p">))</span>
+   <span class="n">q_tmp</span> <span class="o">=</span> <span class="n">qm_dum</span><span class="o">*</span><span class="p">(</span><span class="n">K1_dum</span><span class="o">*</span><span class="n">P_norm</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">K2_dum</span><span class="o">*</span><span class="n">P_norm</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="p">(</span>
+            <span class="mi">1</span><span class="o">+</span> <span class="n">K1_dum</span><span class="o">*</span><span class="n">P_norm</span> <span class="o">+</span> <span class="n">K2_dum</span><span class="o">*</span><span class="n">P_norm</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+   <span class="n">q_w_err</span> <span class="o">=</span> <span class="n">q_tmp</span> <span class="o">+</span> <span class="n">err_dum</span>
+   <span class="n">q_dum</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q_w_err</span><span class="p">)</span>
+<span class="c1"># Use isofit</span>
+<span class="n">P_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">P_dum</span><span class="p">,]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">q_dum</span><span class="p">)</span>
+<span class="n">res_diffT</span> <span class="o">=</span> <span class="n">isofit</span><span class="o">.</span><span class="n">fit_diffT</span><span class="p">(</span><span class="n">P_list</span><span class="p">,</span><span class="n">q_dum</span><span class="p">,</span> <span class="n">T_dum</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tol</span> <span class="o">=</span> <span class="mf">2E-4</span><span class="p">)</span>
+<span class="n">iso_function</span><span class="p">,</span> <span class="n">iso_param</span><span class="p">,</span> <span class="n">zerr</span> <span class="o">=</span> <span class="n">res_diffT</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
+<span class="n">fit_error</span><span class="p">,</span> <span class="n">dH_found</span><span class="p">,</span> <span class="n">Tref_found</span><span class="p">,</span> <span class="n">theta_list</span> <span class="o">=</span> <span class="n">res_diffT</span> <span class="p">[</span><span class="mi">3</span><span class="p">:]</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;This data is fitted with </span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">zerr</span><span class="p">))</span>
+
+<span class="c1"># Prediction for different T</span>
+<span class="n">P_pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mf">2.5</span><span class="p">,</span> <span class="mi">51</span><span class="p">)</span>
+<span class="n">q_pred</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">T</span> <span class="ow">in</span> <span class="n">T_dum</span><span class="p">:</span>
+   <span class="n">q_tmp</span> <span class="o">=</span><span class="n">iso_function</span><span class="p">(</span><span class="n">P_pred</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span>
+   <span class="n">q_pred</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q_tmp</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="developing-mixuture-isotherm-with-iast">
+<h3>3. Developing mixuture isotherm with IAST<a class="headerlink" href="#developing-mixuture-isotherm-with-iast" title="Permalink to this heading"></a></h3>
+<p><code class="xref py py-mod docutils literal notranslate"><span class="pre">IAST</span></code> provides Ideal adsorbed solution theory (IAST) calculation. IAST is widely used for predicting the isotherm of multiple components using pure isotherm models for each gas component.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Pure isotherm functions</span>
+<span class="k">def</span> <span class="nf">iso1</span><span class="p">(</span><span class="n">P</span><span class="p">,</span><span class="n">T</span><span class="p">):</span>
+   <span class="n">deno</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="mf">0.3</span><span class="o">*</span><span class="n">P</span>
+   <span class="n">nume</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="mf">0.3</span><span class="o">*</span><span class="n">P</span>
+   <span class="k">return</span>  <span class="n">nume</span><span class="o">/</span><span class="n">deno</span>
+<span class="k">def</span> <span class="nf">iso2</span><span class="p">(</span><span class="n">P</span><span class="p">,</span><span class="n">T</span><span class="p">):</span>
+   <span class="n">deno</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="mf">0.3</span><span class="o">*</span><span class="n">P</span> <span class="o">+</span> <span class="mf">0.1</span><span class="o">*</span><span class="n">P</span><span class="o">**</span><span class="mi">2</span>
+   <span class="n">nume</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="p">(</span><span class="mf">0.3</span><span class="o">*</span><span class="n">P</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="mf">0.1</span><span class="o">*</span><span class="n">P</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+   <span class="k">return</span> <span class="n">nume</span><span class="o">/</span><span class="n">deno</span>
+<span class="k">def</span> <span class="nf">iso3</span><span class="p">(</span><span class="n">P</span><span class="p">,</span><span class="n">T</span><span class="p">):</span>
+   <span class="k">return</span> <span class="mi">2</span><span class="o">*</span><span class="n">P</span><span class="o">**</span><span class="mf">0.4</span>
+
+<span class="n">iso_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">iso1</span><span class="p">,</span> <span class="n">iso2</span><span class="p">,</span> <span class="n">iso3</span><span class="p">]</span>
+<span class="n">P_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">9</span><span class="p">)</span>  <span class="c1"># pressure (bar)</span>
+<span class="n">T</span> <span class="o">=</span> <span class="mi">300</span>    <span class="c1"># temperature (K)</span>
+<span class="n">y_gas</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># mole fraction (mol/mol)</span>
+<span class="n">y1</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">]</span> <span class="c1"># mol. frac. of 1 (mo/mol)</span>
+<span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">y1</span><span class="p">:</span>
+   <span class="n">y_tmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">y</span><span class="p">,</span> <span class="mf">0.6</span><span class="o">-</span><span class="n">y</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">])</span>
+   <span class="n">y_gas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y_tmp</span><span class="p">)</span>
+<span class="n">q_comp1</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">q_comp2</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">yy</span> <span class="ow">in</span> <span class="n">y_gas</span><span class="p">:</span>
+   <span class="n">res_list</span> <span class="o">=</span> <span class="p">[]</span>
+   <span class="n">q1_tmp</span> <span class="o">=</span> <span class="p">[]</span>
+   <span class="n">q2_tmp</span> <span class="o">=</span> <span class="p">[]</span>
+   <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">P_arr</span><span class="p">:</span>
+      <span class="n">res_tmp</span> <span class="o">=</span> <span class="n">isofit</span><span class="o">.</span><span class="n">IAST</span><span class="p">(</span><span class="n">iso_list</span><span class="p">,</span><span class="n">p</span><span class="o">*</span><span class="n">yy</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span>
+      <span class="n">res_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res_tmp</span><span class="p">)</span>
+      <span class="n">q1_tmp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res_tmp</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+      <span class="n">q2_tmp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">res_tmp</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+   <span class="n">q_comp1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q1_tmp</span><span class="p">)</span>
+   <span class="n">q_comp2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q2_tmp</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="function-structures">
+<h2>Function structures<a class="headerlink" href="#function-structures" title="Permalink to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyAPEP.isofit.best_isomodel">
+<span class="sig-prename descclassname"><span class="pre">pyAPEP.isofit.</span></span><span class="sig-name descname"><span class="pre">best_isomodel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">P</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iso_par_nums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[2,</span> <span class="pre">3,</span> <span class="pre">4]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iso_fun_lists</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iso_fun_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyAPEP/isofit.html#best_isomodel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyAPEP.isofit.best_isomodel" title="Permalink to this definition"></a></dt>
+<dd><p>Function to automatically find best isotherm model for given datast with multiple isotherm and optimizer candidates.</p>
+<p>Models supported are as follows. Here, <span class="math notranslate nohighlight">\(q\)</span> is the gas uptake,
+<span class="math notranslate nohighlight">\(P\)</span> is partial pressure (fugacity technically).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>P</strong> – Partial pressure list</p></li>
+<li><p><strong>q</strong> – Acutal or simulated uptake list of given P</p></li>
+<li><p><strong>iso_par_nums</strong> – The number of parameters for isotherm models</p></li>
+<li><p><strong>iso_fun_lists</strong> – Isotherm function candidates</p></li>
+<li><p><strong>iso_fun_index</strong> – Each name for iso_fun_lists</p></li>
+<li><p><strong>tol</strong> – Tolerance</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>isotherm function, estimated parameters of isotherm function, the type of isotherm, and validation error of the model</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyAPEP.isofit.fit_diffT">
+<span class="sig-prename descclassname"><span class="pre">pyAPEP.isofit.</span></span><span class="sig-name descname"><span class="pre">fit_diffT</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">q_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i_ref</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iso_par_nums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[2,</span> <span class="pre">3,</span> <span class="pre">4]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iso_fun_lists</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">iso_fun_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyAPEP/isofit.html#fit_diffT"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyAPEP.isofit.fit_diffT" title="Permalink to this definition"></a></dt>
+<dd><p>Function to fit isotherm model for given datast based on the different temperatures.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p_list</strong> – Partial pressure list</p></li>
+<li><p><strong>q_list</strong> – Acutal or simulated uptake list of given P</p></li>
+<li><p><strong>T_list</strong> – Temperature list</p></li>
+<li><p><strong>i_ref</strong> – Reference temperature index in T_list</p></li>
+<li><p><strong>iso_par_nums</strong> – The number of parameters for isotherm models</p></li>
+<li><p><strong>iso_fun_lists</strong> – Isotherm function candidates</p></li>
+<li><p><strong>iso_fun_index</strong> – Each name for iso_fun_lists</p></li>
+<li><p><strong>tol</strong> – Tolerance</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>var_return (isotherm function, isotherm parameters, errors, calculated heat of adsorption, reference temperature, a list of :math:`        heta_{T_j}`)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyAPEP.isofit.IAST">
+<span class="sig-prename descclassname"><span class="pre">pyAPEP.isofit.</span></span><span class="sig-name descname"><span class="pre">IAST</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">isotherm_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyAPEP/isofit.html#IAST"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyAPEP.isofit.IAST" title="Permalink to this definition"></a></dt>
+<dd><p>Function to develop the mixture isotherm model for given datast.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>isotherm_list</strong> – Pure isotherm function list of each components</p></li>
+<li><p><strong>P_i</strong> – Partial pressure of each components</p></li>
+<li><p><strong>T</strong> – Temperature</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>q_return</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<hr class="docutils" />
+<section id="theory">
+<h2>Theory<a class="headerlink" href="#theory" title="Permalink to this heading"></a></h2>
+<section id="finding-best-isotherm-function-algorithm">
+<h3>Finding best isotherm function algorithm<a class="headerlink" href="#finding-best-isotherm-function-algorithm" title="Permalink to this heading"></a></h3>
+<p>A primary function, <code class="xref py py-mod docutils literal notranslate"><span class="pre">best_isomodel</span></code>, automatically determines the best isotherm function from a given pressure-uptake dataset. Figure below shows the algorithm of <code class="xref py py-mod docutils literal notranslate"><span class="pre">best_isomodel</span></code>. The algorithm consists of three main stages. First, the parameter was estimated using a given isotherm function and an optimization solver. In the next stage, the best optimization solver with the least error was identified by repeatedly solving the objective problems using five optimization solvers. Finally, the best isotherm function among the five isotherm candidates was found by repeating the first and second stages. A detailed explanation of each stage is provided below:</p>
+<a class="reference internal image-reference" href="_images/algorithm.png"><img alt="Isotherm fitting algorithm" class="align-center" src="_images/algorithm.png" style="width: 500px;" /></a>
+<p>Figure shows the algorithm of <code class="xref py py-mod docutils literal notranslate"><span class="pre">isofit.best_isomodel</span></code>. The algorithm consists of three stages. First, the parameter estimation is carried out with a given isotherm function and an optimization solver. The next stage finds the best optimization solver with the least error by repeatedly solving the objective problems with five optimization solvers. Lastly, the best isotherm function is found among five isotherm candidates by repeating the first and second stages. A detailed explanation of each stage is described followings.</p>
+<p>Parameters estimation of the isotherm function is the same as solving an optimization problem as followings:</p>
+<div class="math notranslate nohighlight">
+\[J = \min_{K_1, K_2, ...} \left( \sum_{i=1}^{N_{fit}} (q_i-\hat{q}_i)^2 \right )\]</div>
+<div class="math notranslate nohighlight">
+\[\hat{q} = f(P, T, K_1, K_2, ...)\]</div>
+<p>where <span class="math notranslate nohighlight">\(q\)</span>, <span class="math notranslate nohighlight">\(N_{fit}\)</span>, and <span class="math notranslate nohighlight">\(K\)</span> refer to gas uptake, the number of data samples for isotherm fitting, and isotherm parameters, respectively. <span class="math notranslate nohighlight">\(f\)</span> means the isotherm function, and <span class="math notranslate nohighlight">\(\hat{q}\)</span> is the predicted uptake from <span class="math notranslate nohighlight">\(f\)</span>. By solving the objective function, the isotherm parameters are derived that satisfy the minimum error between actual and predicted uptake data.</p>
+<p>To find the best isotherm parameters,  <code class="xref py py-mod docutils literal notranslate"><span class="pre">isofit.best_isomodel</span></code> function considers five optimization solvers. Optimization solvers are given by the public python package, scipy, and those are Nelder-mead, Powell, COBYLA, shgo, and differential evolution. The optimization solver (s) with the minimum objective function is selected and the isotherm function is derived as the following equation, and <span class="math notranslate nohighlight">\(Opt\_list\)</span> refers to the list of five solvers.</p>
+<div class="math notranslate nohighlight">
+\[s = \arg\min_{Opt\_list}(J)\]</div>
+<p>The best isotherm function with the smallest objective function value is derived by solving the above equations with to five isotherm functions. Five isotherm functions are described in Table __ and <span class="math notranslate nohighlight">\(F\_list\)</span> denotes the list of isotherm functions. Then, the best solver and parameters could be found for each isotherm function.</p>
+<div class="math notranslate nohighlight">
+\[f = \arg\min_{F\_list}(J(s))\]</div>
+<p><code class="xref py py-mod docutils literal notranslate"><span class="pre">isofit</span></code> estimates the parameters for adsorption isotherm models. If the user provides a list of adsorption isotherm models to fit the data, the <code class="xref py py-mod docutils literal notranslate"><span class="pre">isofit</span></code> module uses the default list of isotherm models. The default list includes the following default isotherm models—Langmuir, Freundlich, Quadratic, Sips, and Dual-site Langmuir isotherm models. These isotherm models are described using the following equations as in below table.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><blockquote>
+<div><p># of</p>
+</div></blockquote>
+<p>parameters</p>
+</th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Equation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>Arrh</p></td>
+<td><p><span class="math notranslate nohighlight">\(q(P) =e^{\frac{\vartriangle H}{R} \left (\frac {1}{T}-\frac {1}{T_{ref}} \right)}\)</span></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>2</p></td>
+<td><p>Lang</p></td>
+<td><p><span class="math notranslate nohighlight">\(q(P) = M\frac{KP}{1+KP}\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p>Freu</p></td>
+<td><p><span class="math notranslate nohighlight">\(q(P) = kP^n\)</span></p></td>
+</tr>
+<tr class="row-odd"><td rowspan="2"><p>3</p></td>
+<td><p>Quad</p></td>
+<td><p><span class="math notranslate nohighlight">\(q(P) = M \frac{(K_a + 2 K_b P)P}{1+K_aP+K_bP^2}\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p>Sips</p></td>
+<td><p><span class="math notranslate nohighlight">\(q(P) =\frac{q_m K P^n}{1+K P^n}\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p>DSLang</p></td>
+<td><p><span class="math notranslate nohighlight">\(q(P) = M_1 \frac{K_1 P}{1+K_1 P} +  M_2 \frac{K_2 P}{1+K_2 P}\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p>Langmuir isotherm model is an isotherm model derived from the assumption that identical elementary adsorption sites exist on the adsorbent surface. The Langmuir isotherm model is also know as simple Langmuir or Single-site Langmuir isotherm model to be distinguished from multi-site Langmuir models. Freundlish model is an empirically deduced isotherm model. Although it is well know that Freundlich model is neither physically nor thermodynamically consistent, this model has been widely used still today. Moreover, Quadratic isotherm model is the simplest cooperative adsorption isotherm model. Quadratic isotherm model assumes identical adsorption sites hosting multiple adsorbate molecules. In addition, Sips model is a combination of Langmuir and Freundlich isotherm models. While Sips model follows Freundlich isotherm model at low pressure, the model predicts the saturation of the adsorbent at high pressure as Langmuir isotherm model does. Lastly, Dual-site Langmuir model is the most well-known multisite Langmuir isotherm model. Dual-site Langmuir isotherm model is derived from the assumption t that there exist two distinct types of adsorption sites. These default adsorption isotherm models are considered to select the best adsorption isotherm model for the given data in <code class="xref py py-mod docutils literal notranslate"><span class="pre">isofit</span></code> module.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The user should provide a data sample in consideration of the number of parameters of the model to be used as candidates. For example, if you want to include the Dualsite Langmuir function in candates, the user needs more than three data samples.</p>
+</div>
+</section>
+<section id="adosption-at-different-temperature-using-heat-of-adsorption">
+<h3>Adosption at different temperature (using heat of adsorption)<a class="headerlink" href="#adosption-at-different-temperature-using-heat-of-adsorption" title="Permalink to this heading"></a></h3>
+<p>This <code class="xref py py-mod docutils literal notranslate"><span class="pre">isofit</span></code> module also provides the function to derive the isotherm function depending on the different temperatures. Using the Arrhenius equation, gas uptake could be calculated at a given temperature.</p>
+<div class="math notranslate nohighlight">
+\[a(P, T) = \exp { \frac { \vartriangle H_{ads,i}}{R}\left( \frac{1}{T}-\frac{1}{T_{ref}}\right)},\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Delta H\)</span> and <span class="math notranslate nohighlight">\(R\)</span> are the heat of adsorption and gas constant, respectively. Subscript <span class="math notranslate nohighlight">\(ref\)</span> refers to the reference condition.</p>
+<p>Since adsorption isotherm models have been suggested with uptake-pressure data at a constant temperature, the methods for estimating the isotherm parameters have been discussed in the previous section. However, the influence of temperature is also important to predict the adsorption behaviors in various applications such as the adsorption-based separation or storage processes.</p>
+<p>To reflect the temperature influence on the adsorption equilibrium, adsorption isotherm data measured at different pressure and temperatures should be used in composing an isotherm model. The proposed package, pyAPEP, provides a function <code class="xref py py-mod docutils literal notranslate"><span class="pre">diff_T</span></code> where the isotherm model considering both pressure and temperature effects is found. The function assumes followings:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>The influence of temperature on the adsorption isotherm follows the Clausius-Clapeyron relation since adsorption is considered as a phase change from gas phase to solid phase. This allows the temperature effect to be expressed as the Arrhenius equation.</p></li>
+<li><p>Heat of adsorption is constant for different temperatures and pressure, which is a key parameter expressing the extent of the thermal sensitivity to the adsorption.</p></li>
+</ul>
+</div></blockquote>
+<p>Once we have uptake-pressure data for different temperatures, the assumptions allow the pressure data to be normalized as expressed in follwing equation.</p>
+<div class="math notranslate nohighlight">
+\[P_{norm} = P\times \exp{\left( \frac{\Delta H_{ad}}{R_{gas}} \left(\frac{1}{T} - \frac{1}{T_{ref}} \right)\right)}\]</div>
+<p><span class="math notranslate nohighlight">\(P_{norm}\)</span>, <span class="math notranslate nohighlight">\(\Delta H_{ad}\)</span>, and <span class="math notranslate nohighlight">\(R_{gas}\)</span> are normalized pressure, heat of adsorption, and gas constants, respectively. As given data, temperature and pressure are expressed with <span class="math notranslate nohighlight">\(P\)</span> and <span class="math notranslate nohighlight">\(T\)</span>.</p>
+<p>The pressure should be normalized to make the uptake and normalized pressure data be aligned on a single reference curve, overlapping one another as shown in Figure {fig:sec3:qP_compare}. If the reference curve is expressed with <span class="math notranslate nohighlight">\(f_{ref}\)</span>, assigning proper <span class="math notranslate nohighlight">\(\theta\)</span> to each temperature makes all the data overlapped in below equation.</p>
+<div class="math notranslate nohighlight">
+\[q_{T{j}} = f_{ref}(P_{norm}) = f_{ref}(P\times \theta_{T_{j}})\]</div>
+<p>The problem of finding the best <span class="math notranslate nohighlight">\(\theta\)</span> value is formulated as an optimization problem minimizing the difference between the uptake data and predicted uptake from the reference curve as shown in following equation.</p>
+<div class="math notranslate nohighlight">
+\[\min_{\theta_{T_{j}}} \left( f_{ref}(P\times \theta_{T_{j}}) - q_{T_{j}} \right)^{2}\]</div>
+<p>The <span class="math notranslate nohighlight">\(\theta_{T_{j}}\)</span> values matches to each temperature (<span class="math notranslate nohighlight">\(T_{j}\)</span>), and they are correlated with a parameter, heat of adsorption (<span class="math notranslate nohighlight">\(\Delta H_{ad}\)</span>). From the first assumption, the parameter <span class="math notranslate nohighlight">\(\theta_{T_{j}}\)</span> can be expressed with following equation, which indicates that the heat of adsorption (<span class="math notranslate nohighlight">\(\Delta H_{ad}\)</span>) parameterizes the temperature influences of the adsorption isotherm curves.</p>
+<div class="math notranslate nohighlight">
+\[\theta_{T_{j}, pred} = \exp{\left( \frac{\Delta H_{ad}}{R_{gas}}\left(\frac{1}{T_{j}} - \frac{1}{T_{ref}} \right)\right)}\]</div>
+<p>Using the temperature and <span class="math notranslate nohighlight">\(\theta_{T_{j}}\)</span> data, therefore, the heat of adsorption can be obtained as a solution of below optimization problem.</p>
+<div class="math notranslate nohighlight">
+\[\min_{\Delta H_{ad}} \left( \theta_{T_{j}, pred} - \theta_{T_{j}} \right)^{2}\]</div>
+<p>To find an isotherm model as a function of both pressure and temperature, an isotherm model explaining the reference curve should be found. Since the normalized pressure can be expressed with a function of pressure, the algorithm is employed, which provides the best isotherm model for a reference function, <span class="math notranslate nohighlight">\(f_{ref}(P)\)</span>.</p>
+<p>Using the model and parameters found above, the prediction of uptake (<span class="math notranslate nohighlight">\(q\)</span>) is realized with the equation:</p>
+<div class="math notranslate nohighlight">
+\[q = f_{ref}(P\times\exp{\left( \frac{\Delta H_{ad}}{R_{gas}} \left( \frac{1}{T} - \frac{1}{T_{ref} }\right) \right)})\]</div>
+</section>
+<section id="ideal-adsorbed-solution-theory-iast">
+<h3>Ideal adsorbed solution theory (IAST)<a class="headerlink" href="#ideal-adsorbed-solution-theory-iast" title="Permalink to this heading"></a></h3>
+<p>To derive the mixture isotherm function, pyapep.isofit module provides Ideal adsorbed solution theory (IAST) calculation. IAST is widely used for predicting the isotherm of multiple components using pure isotherm models for each gas component. The assumptions in IAST are described below. Detailed descriptions of the theory refer to [46].</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>The temperature is fixed and the pure isotherm are measured at the same temperature.</p></li>
+<li><p>The thermodynamic property of the adsorbent during the adsorption is negligible.</p></li>
+<li><p>Each adsorbate has access to the same area of adsorbent surface.</p></li>
+<li><p>A Gibbs dividing surface defines an adsorbed phase.</p></li>
+</ul>
+</div></blockquote>
+<p>From Raoults’ law, we need to find solid mole fraction <span class="math notranslate nohighlight">\(x_i\)</span>, which is the uptake.</p>
+<div class="math notranslate nohighlight">
+\[P_{i}^{\circ} = y_i\frac{P}{x_i}\]</div>
+<div class="math notranslate nohighlight">
+\[\pi_{i}^{\circ} = \frac{\pi_i}{RT} = \int_{0}^{P^{\circ}}\frac{f_i(P)}{P}\,dP\]</div>
+<p>where, <span class="math notranslate nohighlight">\(\pi_{i}^{\circ}\)</span> is the reduced spreading pressure, <span class="math notranslate nohighlight">\(f_i(P)\)</span> is the pure isotherm model. For components <span class="math notranslate nohighlight">\(i = 1, 2, ..., n\)</span>, the pure component spreading pressure <span class="math notranslate nohighlight">\(\pi_i\)</span> at pressure <span class="math notranslate nohighlight">\(P^{\circ}_i\)</span> are all equal to the spreading pressure of the mixture <span class="math notranslate nohighlight">\(\pi\)</span>.</p>
+<div class="math notranslate nohighlight">
+\[\pi = \pi_1(P^{\circ}_1) = \pi_2(P^{\circ}_2) = \cdots = \pi_N(P^{\circ}_n)\]</div>
+<div class="math notranslate nohighlight">
+\[\min_{x_1, x_2, ... x _n} \sum_{i=1}^n \sum_{j \ne i}^{n-1} (\pi^{\circ}_i - \pi^{\circ}_j)^2\]</div>
+<p>The spreading pressures for all components are calculated with <span class="math notranslate nohighlight">\(x_{guess}\)</span> until the difference between the spreading pressure of each component is minimized. <span class="math notranslate nohighlight">\(\pi_i\)</span> and <span class="math notranslate nohighlight">\(x_i\)</span> are derived by solving above equation, and the gas uptake of each component is calculated by the followings,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}q_i = q_{total}\cdot x_i \\
+ \textrm{where} \;\frac{1}{q_{total}} = \sum_{i=1}^{n} \frac{x_i}{f_i(P^{\circ}_i)}\end{split}\]</div>
+<p>During the implementation of IAST, implicit calculations are required to find the adsorption equilibrium. In pyAPEP proposed in this work, the implicit calculations are solved using the optimization method. The formulated optimization problem is illustrated in below equation.</p>
+<div class="math notranslate nohighlight">
+\[\min_{x_{1}, x_{2}, \dots}{\sum_{j = 1}^{n}\left( {h_{j}(x_{j}, y_{j}, P, T)- {h_{1}(x_{1}, y_{1}, P, T)}} \right)^{2} }\]</div>
+<div class="math notranslate nohighlight">
+\[\pi_{i} = h_{i}(x_{i}, y_{j}, P, T)\]</div>
+<p>Suppose that the function <span class="math notranslate nohighlight">\(h_j\)</span> is the computations of the spreading pressure of component <span class="math notranslate nohighlight">\(j(π_i)\)</span>. The function <span class="math notranslate nohighlight">\(h_j\)</span> is a function of the given initial guess of solid phase mole fraction (<span class="math notranslate nohighlight">\(x_j\)</span>), gas phase mole fraction <span class="math notranslate nohighlight">\(y_j\)</span>, pressure(<span class="math notranslate nohighlight">\(P\)</span>), and temperature(<span class="math notranslate nohighlight">\(T\)</span>).</p>
+<p>For efficient computation, this work suggests a new method. Selecting the initial guess of solid phase mole fraction (<span class="math notranslate nohighlight">\(x_{j}\)</span>) is the most important part. To find the initial guess in an efficient way, this work proposes a new method. The method uses the extended Langmuir isotherm model for the initial guess.</p>
+<p>Since the extended Langmuir isotherm has explicit equation structure, it takes significantly short time to calculate the Langmuir isotherm equation solution. However, the problem is that the extended Langmuir isotherm model is not applicable to the other isotherm models than Langmuir model as a pure isotherm model. For example, if one component follows Freundlich isotherm model, the Langmuir isotherm model parameters cannot be found.</p>
+<p>To overcome this problem, the method proposed in this work estimates effective values of the Langmuir isotherm model parameters (<span class="math notranslate nohighlight">\(q_{m,eff,i}\)</span> and <span class="math notranslate nohighlight">\(b_{eff,i}\)</span>). This method firstly assumes that the isotherm model behaves in the similar way of Langmuir isotherm model. For given isotherm model <span class="math notranslate nohighlight">\(f_{i}(P_{i})\)</span>, the effective Langmuir parameters are found as following equations.</p>
+<div class="math notranslate nohighlight">
+\[q_{m, eff,i} = f_{i}(P_{H})\]</div>
+<div class="math notranslate nohighlight">
+\[q_{i} = f_{i}(P_{i})\]</div>
+<div class="math notranslate nohighlight">
+\[b_{eff,i} = \frac{q_{i}}{q_{m,eff,i}-q_{i}}\]</div>
+<p>In the equations, <span class="math notranslate nohighlight">\(P_{high}\)</span> is a huge pressure enough to saturate the adsorbent while <span class="math notranslate nohighlight">\(P_{i}\)</span> is current partial pressure. By applying those effective Langmuir parameters to extended Langmuir isotherm model as shown in below equations, practical initial guess (<span class="math notranslate nohighlight">\(x_{i,init}\)</span>) is found for solving the optimization problem.</p>
+<div class="math notranslate nohighlight">
+\[q_{i,init} = \frac{q_{m,eff,i}b_{eff,i}P_{i}}{1+\sum_{j} b_{eff,j}P_{j}}\]</div>
+<div class="math notranslate nohighlight">
+\[x_{i,init} = \frac{q_{i,init}}{\sum_{j}{q_{j,init}}}\]</div>
+<p>The effective Langmuir parameters are similar to finding a hydraulic diameter for pipes with different shapes. Although various hydraulic dimensionless numbers are defined based on the pipe diameter, the diameter cannot be found in the pipes with other shapes than circle. As an important hydraulic feature, the hydraulic diameter of different cross-sectional  shape is calculated with the ratio between the area and perimeter.</p>
+<hr class="docutils" />
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pyAPEP.html" class="btn btn-neutral float-left" title="pyAPEP" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="simide.html" class="btn btn-neutral float-right" title="Ideal PSA simulation module (pyAPEP.simide)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, anna.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

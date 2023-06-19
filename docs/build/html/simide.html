@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ideal PSA simulation module (pyAPEP.simide) &mdash; pyAPEP 1.0.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="canonical" href="https://nahyeonan.github.io/pyAPEP/simide.html" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Real PSA simulation module (pyAPEP.simsep)" href="simsep.html" />
+    <link rel="prev" title="Isotherm fitting module (pyAPEP.isofit)" href="isofit.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #BED2E0" >
+            <a href="index.html">
+            <img src="_static/pyAPEP.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="pyAPEP.html">pyAPEP</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="isofit.html">Isotherm fitting module (<code class="xref py py-mod docutils literal notranslate"><span class="pre">pyAPEP.isofit</span></code>)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Ideal PSA simulation module (<code class="xref py py-mod docutils literal notranslate"><span class="pre">pyAPEP.simide</span></code>)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#usage">Usage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#mixture-isotherm-function-definition">1. Mixture isotherm function definition</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ideal-column-definition">2. Ideal column definition</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#feed-condition-setting">3. Feed condition setting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#operating-condition-setting">4. Operating condition setting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#simulation-run">5. Simulation run</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-pyAPEP.simide">Class documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#theory">Theory</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="simsep.html">Real PSA simulation module (<code class="xref py py-mod docutils literal notranslate"><span class="pre">pyAPEP.simsep</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Case%20studies.html">Case studies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FAQs.html">FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #BED2E0" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyAPEP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="pyAPEP.html">pyAPEP</a> &raquo;</li>
+      <li>Ideal PSA simulation module (<code class="xref py py-mod docutils literal notranslate"><span class="pre">pyAPEP.simide</span></code>)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/simide.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ideal-psa-simulation-module-pyapep-simide">
+<h1>Ideal PSA simulation module (<a class="reference internal" href="#module-pyAPEP.simide" title="pyAPEP.simide"><code class="xref py py-mod docutils literal notranslate"><span class="pre">pyAPEP.simide</span></code></a>)<a class="headerlink" href="#ideal-psa-simulation-module-pyapep-simide" title="Permalink to this heading"></a></h1>
+<p>This module enables ideal PSA simulation using isotherm function and operating conditions.</p>
+<p>First, import simide into Python after installation.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Package import</span>
+ <span class="kn">import</span> <span class="nn">pyapep.isofit</span> <span class="k">as</span> <span class="nn">isofit</span>
+ <span class="kn">import</span> <span class="nn">pyapep.simide</span> <span class="k">as</span> <span class="nn">simide</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt>Then users need to 5-steps to simulate.</dt><dd><ol class="arabic simple">
+<li><p>Mixture isotherm function definition</p></li>
+<li><p>Ideal column definition</p></li>
+<li><p>Feed condition setting</p></li>
+<li><p>Operating condition setting</p></li>
+<li><p>Simulation run</p></li>
+</ol>
+</dd>
+</dl>
+<p>In next section, detailed steps are explained.</p>
+<hr class="docutils" />
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this heading"></a></h2>
+<section id="mixture-isotherm-function-definition">
+<h3>1. Mixture isotherm function definition<a class="headerlink" href="#mixture-isotherm-function-definition" title="Permalink to this heading"></a></h3>
+<p>Here, we define the mixture isotherm function with <code class="xref py py-mod docutils literal notranslate"><span class="pre">pyAPEP.isofit</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate dummy data</span>
+<span class="n">P</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+<span class="n">q_comp1</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>     <span class="c1"># Gas adsorption of component 1</span>
+<span class="n">q_comp2</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">10</span><span class="p">]</span>    <span class="c1"># Gas adsorption of component 2</span>
+
+<span class="c1"># Define pure isotherm of each component</span>
+<span class="n">iso1</span><span class="p">,</span> <span class="n">param1</span><span class="p">,</span> <span class="n">fntype1</span><span class="p">,</span> <span class="n">err1</span> <span class="o">=</span> <span class="n">isofit</span><span class="o">.</span><span class="n">best_isomodel</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">q_comp1</span><span class="p">)</span>
+<span class="n">iso2</span><span class="p">,</span> <span class="n">param2</span><span class="p">,</span> <span class="n">fntype2</span><span class="p">,</span> <span class="n">err2</span> <span class="o">=</span> <span class="n">isofit</span><span class="o">.</span><span class="n">best_isomodel</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">q_comp2</span><span class="p">)</span>
+
+<span class="c1"># Mixture isotherm function definition</span>
+<span class="c1"># iso1 and iso2 == Pure isotherm function of each component.</span>
+<span class="n">iso_mix</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">P</span><span class="p">,</span><span class="n">T</span><span class="p">:</span> <span class="n">isofit</span><span class="o">.</span><span class="n">IAST</span><span class="p">([</span><span class="n">iso1</span><span class="p">,</span> <span class="n">iso2</span><span class="p">],</span> <span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="ideal-column-definition">
+<h3>2. Ideal column definition<a class="headerlink" href="#ideal-column-definition" title="Permalink to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># The number of components</span>
+<span class="n">num_comp</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="c1"># Ideal column definition</span>
+<span class="n">Column1</span> <span class="o">=</span> <span class="n">simide</span><span class="o">.</span><span class="n">IdealColumn</span><span class="p">(</span><span class="n">num_comp</span><span class="p">,</span> <span class="n">iso_mix</span> <span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">Column1</span><span class="p">)</span>                                     <span class="c1"># Chek input condition</span>
+</pre></div>
+</div>
+</section>
+<section id="feed-condition-setting">
+<h3>3. Feed condition setting<a class="headerlink" href="#feed-condition-setting" title="Permalink to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">P_feed</span> <span class="o">=</span> <span class="mi">8</span>                              <span class="c1"># Feed presure (bar)</span>
+<span class="n">T_feed</span> <span class="o">=</span> <span class="mi">300</span>                            <span class="c1"># Feed temperature (K)</span>
+<span class="n">y_feed</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="o">/</span><span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="o">/</span><span class="mi">4</span><span class="p">]</span>                     <span class="c1"># Feed mole fraction (mol/mol)</span>
+
+<span class="n">Column1</span><span class="o">.</span><span class="n">feedcond</span><span class="p">(</span><span class="n">P_feed</span><span class="p">,</span> <span class="n">T_feed</span><span class="p">,</span> <span class="n">y_feed</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">Column1</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="operating-condition-setting">
+<h3>4. Operating condition setting<a class="headerlink" href="#operating-condition-setting" title="Permalink to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">P_high</span> <span class="o">=</span> <span class="mi">8</span>                          <span class="c1"># High pressure (bar)</span>
+<span class="n">P_low</span>  <span class="o">=</span> <span class="mi">1</span>                          <span class="c1"># Low pressure (bar)</span>
+
+<span class="n">Column1</span><span class="o">.</span><span class="n">opercond</span><span class="p">(</span><span class="n">P_high</span><span class="p">,</span> <span class="n">P_low</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">Column1</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="simulation-run">
+<h3>5. Simulation run<a class="headerlink" href="#simulation-run" title="Permalink to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">x_ext</span> <span class="o">=</span> <span class="n">Column1</span><span class="o">.</span><span class="n">runideal</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">x_ext</span><span class="p">)</span>                        <span class="c1">#return tail gas composition of each gas</span>
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="module-pyAPEP.simide">
+<span id="class-documentation"></span><h2>Class documentation<a class="headerlink" href="#module-pyAPEP.simide" title="Permalink to this heading"></a></h2>
+<p>This module contains objects to characterize the pure-component adsorption
+isotherms from experimental or simulated data. These will be fed into the
+IAST functions in pyiast.py.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyAPEP.simide.IdealColumn">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyAPEP.simide.</span></span><span class="sig-name descname"><span class="pre">IdealColumn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_comp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">isotherm_fun</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyAPEP/simide.html#IdealColumn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyAPEP.simide.IdealColumn" title="Permalink to this definition"></a></dt>
+<dd><p>A <cite>IdealColumn</cite> class is instantiated by passing it the pure-component adsorption isotherm in the form of a Pandas DataFrame. The least squares data fitting is done here.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n_comp</strong> – The number of components in the PSA system.</p></li>
+<li><p><strong>isotherm_fun</strong> – Mixture isotherm function (could be optain from <code class="xref py py-mod docutils literal notranslate"><span class="pre">pyAPEP.isofit</span></code>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pyAPEP.simide.IdealColumn" title="pyAPEP.simide.IdealColumn">IdealColumn</a></p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyAPEP.simide.IdealColumn.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_comp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">isotherm_fun</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyAPEP/simide.html#IdealColumn.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyAPEP.simide.IdealColumn.__init__" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyAPEP.simide.IdealColumn.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyAPEP/simide.html#IdealColumn.__str__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyAPEP.simide.IdealColumn.__str__" title="Permalink to this definition"></a></dt>
+<dd><p>Return str(self).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pyAPEP.simide.IdealColumn.__weakref__">
+<span class="sig-name descname"><span class="pre">__weakref__</span></span><a class="headerlink" href="#pyAPEP.simide.IdealColumn.__weakref__" title="Permalink to this definition"></a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyAPEP.simide.IdealColumn.feedcond">
+<span class="sig-name descname"><span class="pre">feedcond</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">P_feed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_feed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_feed</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyAPEP/simide.html#IdealColumn.feedcond"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyAPEP.simide.IdealColumn.feedcond" title="Permalink to this definition"></a></dt>
+<dd><p>Input feed condtions</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>P_feed</strong> – Feed pressure (bar).</p></li>
+<li><p><strong>T_feed</strong> – Feed temperature (K).</p></li>
+<li><p><strong>y_feed</strong> – Feed composition (mol/mol)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyAPEP.simide.IdealColumn.isofunct">
+<span class="sig-name descname"><span class="pre">isofunct</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n_comp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">isotherm_fun</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyAPEP/simide.html#IdealColumn.isofunct"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyAPEP.simide.IdealColumn.isofunct" title="Permalink to this definition"></a></dt>
+<dd><p>Given stored model parameters, compute loading at pressure P.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pressure</strong> – Float or Array pressure (in corresponding units as df
+in instantiation)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>predicted loading at pressure P (in corresponding units as df
+in instantiation) using fitted model params in <cite>self.params</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Float or Array.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyAPEP.simide.IdealColumn.opercond">
+<span class="sig-name descname"><span class="pre">opercond</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">P_high</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P_low</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyAPEP/simide.html#IdealColumn.opercond"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyAPEP.simide.IdealColumn.opercond" title="Permalink to this definition"></a></dt>
+<dd><p>Input operation condtions</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>P_high</strong> – Operating pressure during the adsorption step (bar).</p></li>
+<li><p><strong>P_low</strong> – Operating pressure during the desorption step (bar).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyAPEP.simide.IdealColumn.runideal">
+<span class="sig-name descname"><span class="pre">runideal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyAPEP/simide.html#IdealColumn.runideal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pyAPEP.simide.IdealColumn.runideal" title="Permalink to this definition"></a></dt>
+<dd><p>Run the ideal PSA simulation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tol</strong> – Tolerance for mismatch between uptake <span class="math notranslate nohighlight">\(x_{guess}\)</span> and calculated <span class="math notranslate nohighlight">\(x_i\)</span>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tail gas mole fraction of each component</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<hr class="docutils" />
+<section id="theory">
+<h2>Theory<a class="headerlink" href="#theory" title="Permalink to this heading"></a></h2>
+<a class="reference internal image-reference" href="_images/PSA_process.png"><img alt="PSA process" class="align-center" src="_images/PSA_process.png" style="width: 400px;" /></a>
+<p>Ideal PSA process simulations exclude non-ideal factors deteriorating the separation performances of PSA processes such as thermal effect and pressure gradient along the adsorption column. Since the computation of the non-ideal impact requires most of the computational cost, the ideal PSA process model (shortcut method) drastically reduces the computation time from several days to less tha one second, estimating the theoretical potential of each adsorbent in a PSA process. A few assumptions are made for the idealization of the PSA process.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Extremely fast mass &amp; heat transfer between gas and solid phases</p></li>
+<li><p>The operation of the ideal PSA process is isothermal by perfectly controlling temperature.</p></li>
+<li><p>The operation cycle consists of two steps: adsorption and desorption steps.</p></li>
+<li><p>During the adsorption step, 100% of raffinate gas is produced and the capacity of the adsorbent bed is fully used with perfectly controlled step time.</p></li>
+<li><p>During the desorption step, the detrimental influence of the void fraction on the tail gas purity is ignored.</p></li>
+<li><p>Uniform pressure distribution is assumed all along the adsorbent bed of the PSA process.</p></li>
+</ul>
+</div></blockquote>
+<p>In ideal PSA simulations, the calculated tail gas composition must satisfy the conditions. To determine the tail gas composition (<span class="math notranslate nohighlight">\(x\)</span>), an initial guess (<span class="math notranslate nohighlight">\(x_{guess}\)</span>) should be given. The optimization problem is solved to minimize the difference between the calculated tail gas composition and the initial guess.</p>
+<div class="math notranslate nohighlight">
+\[\min_{x_{guess}} ||x_i-x_{guess}||^2_2\]</div>
+<p>The gas uptake (<span class="math notranslate nohighlight">\(q\)</span>) is obtained using below equations.</p>
+<blockquote>
+<div><div class="math notranslate nohighlight">
+\[q_{1,h}, q_{2,h} = f_{IAST} \left(P_{h}, T, y \right )\]</div>
+<div class="math notranslate nohighlight">
+\[q_{1,l}, q_{2,l} = f_{IAST} \left(P_{l}, T, x_{guess} \right )\]</div>
+</div></blockquote>
+<p>where <span class="math notranslate nohighlight">\(f_{IAST}\)</span> is the mixture isotherm function driven by the pure isotherm function for each component, <span class="math notranslate nohighlight">\(P\)</span> and <span class="math notranslate nohighlight">\(T\)</span> refer to the pressure and temperature, and <span class="math notranslate nohighlight">\(h\)</span> and <span class="math notranslate nohighlight">\(l\)</span> denote high and low, respectively. The tail gas composition was then calculated using the following equations:</p>
+<blockquote>
+<div><div class="math notranslate nohighlight">
+\[\Delta q_i = q_{i,h} - q_{i,l} \; \textrm{for} \, i=1\,\textrm{to} \, n\]</div>
+<div class="math notranslate nohighlight">
+\[x_i = \frac{\Delta q_i}{\sum_{i=1}^{n} \Delta q_i}\]</div>
+</div></blockquote>
+<p>Because the composition of the tail gas is calculated through an ideal PSA simulation, the product recovery may be easily derived. Product recovery is the ratio of the flow rate of the produced product to the feed flow rate and is defined as shown in below.</p>
+<blockquote>
+<div><div class="math notranslate nohighlight">
+\[R_{P} =\frac{F_{P, raffinate}}{F_{P, feed}}= \frac{F_{P, feed}-F_{P, tail}}{F_{P, feed}}\]</div>
+</div></blockquote>
+<p>where <span class="math notranslate nohighlight">\(R\)</span> and <span class="math notranslate nohighlight">\(F\)</span> are the product recovery and flow rate, respectively, and <span class="math notranslate nohighlight">\(P\)</span> denotes the product components. The ideal PSA process assumes 100 % purity of the product produced in the raffinate. Therefore, the mass balance equation for the impurity component is expressed using equation below.</p>
+<blockquote>
+<div><div class="math notranslate nohighlight">
+\[F_{tail} = \frac{y_{I}}{x_{I}} \cdot F_{feed}\]</div>
+</div></blockquote>
+<p>where <span class="math notranslate nohighlight">\(x\)</span> and <span class="math notranslate nohighlight">\(y\)</span> are the mole fractions of the tail gas and feed flow, respectively, and <span class="math notranslate nohighlight">\(I\)</span> denotes the impurity component.
+By substituting for the mass balance described above into the recovery equation, product recovery can be constructed as follows:</p>
+<blockquote>
+<div><div class="math notranslate nohighlight">
+\[R_{P} = \frac{(1-y_{I})F_{feed} - (1-x_{I})F_{tail}}{(1-y_{I})F_{feed}} = 1 - \frac{y_{I}(1-x_{I})}{x_{I}(1-y_{I})}\]</div>
+</div></blockquote>
+<hr class="docutils" />
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="isofit.html" class="btn btn-neutral float-left" title="Isotherm fitting module (pyAPEP.isofit)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="simsep.html" class="btn btn-neutral float-right" title="Real PSA simulation module (pyAPEP.simsep)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, anna.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

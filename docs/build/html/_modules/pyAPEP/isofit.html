@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pyAPEP.isofit &mdash; pyAPEP 1.0.0 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+    <link rel="canonical" href="https://nahyeonan.github.io/pyAPEP/_modules/pyAPEP/isofit.html" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #BED2E0" >
+            <a href="../../index.html">
+            <img src="../../_static/pyAPEP.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../pyAPEP.html">pyAPEP</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Case%20studies.html">Case studies</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../FAQs.html">FAQs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../Citation.html">Citation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #BED2E0" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">pyAPEP</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>pyAPEP.isofit</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for pyAPEP.isofit</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">====================================</span>
+<span class="sd"> :mod:`isofit` module</span>
+<span class="sd">====================================</span>
+<span class="sd">This module develops the pure and mixuture isotherm function, given the</span>
+<span class="sd">partial pressure and adsorption data.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1">#%% Importing</span>
+<span class="c1"># numericals</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1"># scipy</span>
+<span class="kn">from</span> <span class="nn">scipy.integrate</span> <span class="kn">import</span> <span class="n">trapz</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">minimize</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">shgo</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">differential_evolution</span>
+<span class="c1"># files handling</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+
+<span class="c1"># Graph</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+<span class="c1">#%% Single Isotherm 1: isotherm models</span>
+<span class="k">def</span> <span class="nf">Arrh</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">dH</span><span class="p">,</span> <span class="n">T_ref</span><span class="p">):</span>
+    <span class="n">exp_term</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">dH</span><span class="p">)</span><span class="o">/</span><span class="mf">8.3145</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">T</span><span class="o">-</span><span class="mi">1</span><span class="o">/</span><span class="n">T_ref</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">exp_term</span>
+
+
+<span class="c1">### With 2 parameters ###</span>
+<span class="k">def</span> <span class="nf">Lang</span><span class="p">(</span><span class="n">par</span><span class="p">,</span><span class="n">P</span><span class="p">):</span> <span class="c1"># Langmuir isotherm model</span>
+    <span class="n">bP</span> <span class="o">=</span> <span class="n">par</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">P</span>
+    <span class="n">deno</span> <span class="o">=</span> <span class="mi">1</span><span class="o">+</span> <span class="n">bP</span>
+    <span class="n">nume</span> <span class="o">=</span> <span class="n">par</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">bP</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">nume</span><span class="o">/</span><span class="n">deno</span>
+    <span class="k">return</span> <span class="n">q</span>
+
+<span class="k">def</span> <span class="nf">Freu</span><span class="p">(</span><span class="n">par</span><span class="p">,</span> <span class="n">P</span><span class="p">):</span> <span class="c1"># Freundlich isotherm model</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">par</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">P</span><span class="o">**</span><span class="n">par</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">q</span>
+
+<span class="c1">### With 3 parameters ###</span>
+<span class="k">def</span> <span class="nf">Quad</span><span class="p">(</span><span class="n">par</span><span class="p">,</span><span class="n">P</span><span class="p">):</span> <span class="c1"># Quadratic isotherm model</span>
+    <span class="n">bP</span> <span class="o">=</span> <span class="n">par</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">P</span>
+    <span class="n">dPP</span> <span class="o">=</span> <span class="n">par</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">P</span><span class="o">**</span><span class="mi">2</span>
+    <span class="n">deno</span> <span class="o">=</span> <span class="mi">1</span><span class="o">+</span> <span class="n">bP</span> <span class="o">+</span> <span class="n">dPP</span>
+    <span class="n">nume</span> <span class="o">=</span> <span class="n">par</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">bP</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">dPP</span><span class="p">)</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">nume</span><span class="o">/</span><span class="n">deno</span>
+    <span class="k">return</span> <span class="n">q</span>
+
+<span class="k">def</span> <span class="nf">Sips</span><span class="p">(</span><span class="n">par</span><span class="p">,</span><span class="n">P</span><span class="p">):</span> <span class="c1"># Sips isotherm model </span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">par</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">numo</span> <span class="o">=</span> <span class="n">par</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">par</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">P</span><span class="o">**</span><span class="n">n</span>
+    <span class="n">deno</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">par</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">P</span><span class="o">**</span><span class="n">n</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">numo</span><span class="o">/</span><span class="n">deno</span>
+    <span class="k">return</span> <span class="n">q</span>
+
+<span class="c1">### With 4 parameters ###</span>
+<span class="k">def</span> <span class="nf">DSLa</span><span class="p">(</span><span class="n">par</span><span class="p">,</span><span class="n">P</span><span class="p">):</span>
+    <span class="n">nume1</span> <span class="o">=</span> <span class="n">par</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">par</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">P</span>
+    <span class="n">deno1</span> <span class="o">=</span> <span class="mi">1</span><span class="o">+</span><span class="n">par</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">P</span>
+    <span class="n">nume2</span> <span class="o">=</span> <span class="n">par</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">par</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">*</span><span class="n">P</span>
+    <span class="n">deno2</span> <span class="o">=</span> <span class="mi">1</span><span class="o">+</span><span class="n">par</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">*</span><span class="n">P</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">nume1</span><span class="o">/</span><span class="n">deno1</span> <span class="o">+</span> <span class="n">nume2</span><span class="o">/</span><span class="n">deno2</span>
+    <span class="k">return</span> <span class="n">q</span>
+
+<span class="n">iso_fn_candidates</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">[</span><span class="n">Lang</span><span class="p">,</span> <span class="n">Freu</span><span class="p">,],</span>
+        <span class="p">[</span><span class="n">Quad</span><span class="p">,</span> <span class="n">Sips</span><span class="p">,],</span>
+        <span class="p">[</span><span class="n">DSLa</span><span class="p">,]</span>
+        <span class="p">]</span>
+
+<span class="n">iso_fn_candidate_index</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">[</span><span class="s1">&#39;Lang&#39;</span><span class="p">,</span> <span class="s1">&#39;Freu&#39;</span><span class="p">],</span>
+        <span class="p">[</span><span class="s1">&#39;Quad&#39;</span><span class="p">,</span> <span class="s1">&#39;Sips&#39;</span><span class="p">],</span>
+        <span class="p">[</span><span class="s1">&#39;DSLa&#39;</span><span class="p">]</span>
+        <span class="p">]</span>
+<span class="n">iso_par_num</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">]</span>
+
+<span class="c1">#%% Single Isothemr 2: Objective function</span>
+<span class="k">def</span> <span class="nf">iso2err</span><span class="p">(</span><span class="n">par</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">q</span><span class="p">,</span><span class="n">iso_fn</span><span class="p">):</span>
+    <span class="n">par_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">par</span><span class="p">)</span>
+    <span class="n">is_nega</span> <span class="o">=</span> <span class="n">par_arr</span><span class="o">&lt;</span><span class="mi">0</span>
+    <span class="n">penaltyy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">par_arr</span><span class="p">[</span><span class="n">is_nega</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="mi">50</span>
+    <span class="n">par_arr</span><span class="p">[</span><span class="n">is_nega</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    
+    <span class="c1">#diff = (iso_fn(par_arr,np.array(P)) - np.array(q))/(np.array(q)+1E-3)</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">iso_fn</span><span class="p">(</span><span class="n">par_arr</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">P</span><span class="p">))</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+    <span class="n">err_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">diff</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">err_sum</span> <span class="o">+</span> <span class="n">penaltyy</span>
+
+<span class="c1">#%% Single Isothemr 3: Fitting function with a single model</span>
+<span class="n">method_list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Nelder-mead&#39;</span><span class="p">,</span><span class="s1">&#39;Powell&#39;</span><span class="p">,</span><span class="s1">&#39;COBYLA&#39;</span><span class="p">,</span><span class="s1">&#39;shgo&#39;</span><span class="p">,</span><span class="s1">&#39;differential_evolution&#39;</span><span class="p">]</span>
+<span class="k">def</span> <span class="nf">find_par</span><span class="p">(</span><span class="n">isofn</span><span class="p">,</span> <span class="n">n_par</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span><span class="n">q</span><span class="p">,</span> <span class="n">methods</span><span class="p">):</span>
+    <span class="n">p_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">P</span><span class="p">)</span>
+    <span class="n">q_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+    <span class="n">obj_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">par</span><span class="p">:</span> <span class="n">iso2err</span><span class="p">(</span><span class="n">par</span><span class="p">,</span><span class="n">p_arr</span><span class="p">,</span><span class="n">q_arr</span><span class="p">,</span><span class="n">isofn</span><span class="p">)</span>
+    <span class="n">optres_fun</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">optres_x</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">me</span> <span class="ow">in</span> <span class="n">methods</span><span class="p">:</span>
+        <span class="n">optres_tmp</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">me</span> <span class="o">==</span><span class="s1">&#39;shgo&#39;</span><span class="p">:</span>
+            <span class="n">bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">n_par</span><span class="p">,</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">bounds</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">5</span>
+            <span class="n">optres_tmp</span> <span class="o">=</span> <span class="n">shgo</span><span class="p">(</span><span class="n">obj_fn</span><span class="p">,</span><span class="n">bounds</span><span class="p">,)</span>
+        <span class="k">elif</span> <span class="n">me</span> <span class="o">==</span> <span class="s1">&#39;differential_evolution&#39;</span><span class="p">:</span>
+            <span class="n">bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">n_par</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+            <span class="n">bounds</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">5</span>
+            <span class="n">optres_tmp</span> <span class="o">=</span> <span class="n">differential_evolution</span><span class="p">(</span><span class="n">obj_fn</span><span class="p">,</span> <span class="n">bounds</span><span class="p">,)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x0</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">n_par</span><span class="p">)</span>  <span class="c1"># INITIAL GUESS !!!</span>
+            <span class="n">x0</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">q</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">optres_tmp</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">obj_fn</span><span class="p">,</span><span class="n">x0</span><span class="p">,</span><span class="n">method</span> <span class="o">=</span> <span class="n">me</span><span class="p">)</span>
+        <span class="n">optres_fun</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+        <span class="n">optres_x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">bestm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">optres_fun</span><span class="p">)</span>
+    <span class="n">par_sol</span> <span class="o">=</span> <span class="n">optres_x</span><span class="p">[</span><span class="n">bestm</span><span class="p">]</span>
+    <span class="n">fn_sol</span> <span class="o">=</span> <span class="n">optres_fun</span><span class="p">[</span><span class="n">bestm</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">par_sol</span><span class="p">,</span> <span class="n">fn_sol</span><span class="p">,</span> <span class="n">optres_x</span><span class="p">,</span> <span class="n">optres_fun</span>
+
+<span class="c1">#%% Single Isotherm 4: Fitting with diff. isotherm models</span>
+<div class="viewcode-block" id="best_isomodel"><a class="viewcode-back" href="../../isofit.html#pyAPEP.isofit.best_isomodel">[docs]</a><span class="k">def</span> <span class="nf">best_isomodel</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">iso_par_nums</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> 
+<span class="n">iso_fun_lists</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">iso_fun_index</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tol</span> <span class="o">=</span> <span class="mf">1.0E-5</span><span class="p">):</span>
+    
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to automatically find best isotherm model for given datast with multiple isotherm and optimizer candidates.</span>
+<span class="sd">    </span>
+<span class="sd">    Models supported are as follows. Here, :math:`q` is the gas uptake,</span>
+<span class="sd">    :math:`P` is partial pressure (fugacity technically).  </span>
+
+<span class="sd">    :param P: Partial pressure list</span>
+<span class="sd">    :param q: Acutal or simulated uptake list of given P</span>
+<span class="sd">    :param iso_par_nums: The number of parameters for isotherm models</span>
+<span class="sd">    :param iso_fun_lists: Isotherm function candidates</span>
+<span class="sd">    :param iso_fun_index: Each name for iso_fun_lists</span>
+<span class="sd">    :param tol: Tolerance</span>
+<span class="sd">    </span>
+<span class="sd">    :return: isotherm function, estimated parameters of isotherm function, the type of isotherm, and validation error of the model</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="n">iso_fun_lists</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">iso_fun_lists</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">iso_par_nums</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ii</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">iso_fun_lists</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">Lang</span><span class="p">,</span> <span class="n">Freu</span><span class="p">,])</span>
+            <span class="k">if</span> <span class="n">ii</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">iso_fun_lists</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">Quad</span><span class="p">,</span> <span class="n">Sips</span><span class="p">,])</span>
+            <span class="k">if</span> <span class="n">ii</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">iso_fun_lists</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">DSLa</span><span class="p">,])</span>
+    <span class="k">if</span> <span class="n">iso_fun_index</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">iso_fun_index</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">iso_fun_index</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s2">&quot;Langmuir&quot;</span><span class="p">,</span><span class="s2">&quot;Freundlich&quot;</span><span class="p">])</span>
+        <span class="n">iso_fun_index</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s2">&quot;Quadratic&quot;</span><span class="p">,</span><span class="s2">&quot;Sips&quot;</span><span class="p">])</span>
+        <span class="n">iso_fun_index</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s2">&quot;Dual-site Langmuire&quot;</span><span class="p">])</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        for isolii in iso_fun_lists:</span>
+<span class="sd">            indx_tmp = list(range(len(isolii)))</span>
+<span class="sd">            iso_fun_index.append(indx_tmp)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+    <span class="n">optfn_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">optx_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">iso_best_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">iso_best_indx</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">n_par</span><span class="p">,</span><span class="n">iso_funs</span><span class="p">,</span><span class="n">iso_ind</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">iso_par_nums</span><span class="p">,</span> <span class="n">iso_fun_lists</span><span class="p">,</span> <span class="n">iso_fun_index</span><span class="p">):</span>
+        <span class="c1">########################################</span>
+        <span class="n">parsol_list_tmp</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">fnsol_list_tmp</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">isof</span> <span class="ow">in</span> <span class="n">iso_funs</span><span class="p">:</span>
+            <span class="n">par_sol_tmp</span><span class="p">,</span> <span class="n">fn_sol_tmp</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">find_par</span><span class="p">(</span><span class="n">isof</span><span class="p">,</span> <span class="n">n_par</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">method_list</span><span class="p">)</span>
+            <span class="n">parsol_list_tmp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">par_sol_tmp</span><span class="p">)</span>
+            <span class="n">fnsol_list_tmp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fn_sol_tmp</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fnsol_list_tmp</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">arg_best</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">arg_best</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">fnsol_list_tmp</span><span class="p">))</span>
+        
+        <span class="n">parsol_tmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">parsol_list_tmp</span><span class="p">)[</span><span class="n">arg_best</span><span class="p">]</span>
+        <span class="n">fnsol_tmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">fnsol_list_tmp</span><span class="p">)[</span><span class="n">arg_best</span><span class="p">]</span>
+        <span class="n">isobest_tmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">iso_funs</span><span class="p">)[</span><span class="n">arg_best</span><span class="p">]</span>
+        <span class="n">isobest_indx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">iso_ind</span><span class="p">)[</span><span class="n">arg_best</span><span class="p">]</span>
+
+        <span class="n">optx_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsol_tmp</span><span class="p">)</span>
+        <span class="n">optfn_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fnsol_tmp</span><span class="p">)</span>
+        <span class="n">iso_best_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">isobest_tmp</span><span class="p">)</span>
+        <span class="n">iso_best_indx</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">isobest_indx</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fnsol_tmp</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">tol</span><span class="p">:</span>
+            <span class="k">break</span>
+    <span class="c1">#print(optfn_list)</span>
+    <span class="n">argMIN</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">optfn_list</span><span class="p">))</span>
+    <span class="n">x_best</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">optx_list</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)[</span><span class="n">argMIN</span><span class="p">]</span>
+    <span class="n">iso_best</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">pp</span><span class="p">:</span> <span class="n">iso_best_list</span><span class="p">[</span><span class="n">argMIN</span><span class="p">](</span><span class="n">x_best</span><span class="p">,</span> <span class="n">pp</span><span class="p">)</span>
+    <span class="n">str_best</span> <span class="o">=</span> <span class="n">iso_best_indx</span><span class="p">[</span><span class="n">argMIN</span><span class="p">]</span>
+    <span class="n">fnval_best</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">optfn_list</span><span class="p">)[</span><span class="n">argMIN</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">iso_best</span><span class="p">,</span> <span class="n">x_best</span><span class="p">,</span> <span class="n">str_best</span><span class="p">,</span> <span class="n">fnval_best</span></div>
+    <span class="c1">#return iso_best, x_best , fnval_best</span>
+
+<span class="c1">#%% Fitting for different T (Heat of adsorption)</span>
+
+<div class="viewcode-block" id="fit_diffT"><a class="viewcode-back" href="../../isofit.html#pyAPEP.isofit.fit_diffT">[docs]</a><span class="k">def</span> <span class="nf">fit_diffT</span><span class="p">(</span><span class="n">p_list</span><span class="p">,</span> <span class="n">q_list</span><span class="p">,</span> <span class="n">T_list</span><span class="p">,</span> <span class="n">i_ref</span><span class="p">,</span>
+        <span class="n">iso_par_nums</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> 
+        <span class="n">iso_fun_lists</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+        <span class="n">iso_fun_index</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tol</span> <span class="o">=</span> <span class="mf">1.0E-5</span><span class="p">):</span>
+    
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to fit isotherm model for given datast based on the different temperatures.</span>
+<span class="sd">    </span>
+<span class="sd">    :param p_list: Partial pressure list</span>
+<span class="sd">    :param q_list: Acutal or simulated uptake list of given P</span>
+<span class="sd">    :param T_list: Temperature list</span>
+<span class="sd">    :param i_ref: Reference temperature index in T_list</span>
+<span class="sd">    :param iso_par_nums: The number of parameters for isotherm models</span>
+<span class="sd">    :param iso_fun_lists: Isotherm function candidates</span>
+<span class="sd">    :param iso_fun_index: Each name for iso_fun_lists</span>
+<span class="sd">    :param tol: Tolerance</span>
+<span class="sd">    </span>
+<span class="sd">    :return: var_return (isotherm function, isotherm parameters, errors, calculated heat of adsorption, reference temperature, a list of :math:`\theta_{T_j}`)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">p_ref</span> <span class="o">=</span> <span class="n">p_list</span><span class="p">[</span><span class="n">i_ref</span><span class="p">]</span>
+    <span class="n">q_ref</span> <span class="o">=</span> <span class="n">q_list</span><span class="p">[</span><span class="n">i_ref</span><span class="p">]</span>
+    <span class="n">fit_res_ref</span> <span class="o">=</span> <span class="n">best_isomodel</span><span class="p">(</span><span class="n">p_ref</span><span class="p">,</span><span class="n">q_ref</span><span class="p">,</span> 
+            <span class="n">iso_par_nums</span><span class="p">,</span> <span class="n">iso_fun_lists</span><span class="p">,</span> <span class="n">iso_fun_index</span><span class="p">,</span> <span class="n">tol</span><span class="p">)</span>
+    <span class="n">iso_ref</span><span class="p">,</span> <span class="n">param_ref</span><span class="p">,</span> <span class="n">model_ref</span><span class="p">,</span> <span class="n">fnval_ref</span> <span class="o">=</span> <span class="n">fit_res_ref</span>
+    <span class="c1">#print(model_ref)</span>
+    <span class="c1">#print(fit_res_ref)</span>
+    <span class="n">n_da</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">T_list</span><span class="p">)</span>
+    <span class="n">theta_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">p_norm</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">q_norm</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># Objective function for theta</span>
+    <span class="k">for</span> <span class="n">kkk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_da</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">kkk</span> <span class="o">==</span> <span class="n">i_ref</span><span class="p">:</span>
+            <span class="n">theta_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">p_norm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p_list</span><span class="p">[</span><span class="n">kkk</span><span class="p">])</span>
+            <span class="n">q_norm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q_list</span><span class="p">[</span><span class="n">kkk</span><span class="p">])</span>
+            <span class="k">continue</span>
+        <span class="k">def</span> <span class="nf">err_theta</span><span class="p">(</span><span class="n">theta</span><span class="p">):</span>
+            <span class="n">pp_tmp</span> <span class="o">=</span> <span class="n">p_list</span><span class="p">[</span><span class="n">kkk</span><span class="p">]</span><span class="o">*</span><span class="n">theta</span>
+            <span class="n">qq_tmp</span> <span class="o">=</span> <span class="n">q_list</span><span class="p">[</span><span class="n">kkk</span><span class="p">]</span>
+            <span class="n">qq_pred</span> <span class="o">=</span> <span class="n">iso_ref</span><span class="p">(</span><span class="n">pp_tmp</span><span class="p">)</span>
+            <span class="n">diff</span> <span class="o">=</span> <span class="p">(</span><span class="n">qq_tmp</span> <span class="o">-</span> <span class="n">qq_pred</span><span class="p">)</span>
+            <span class="n">mse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">diff</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">mse</span>
+        <span class="c1"># Find theta</span>
+        <span class="n">opt_tmp_theta</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span>
+            <span class="n">err_theta</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span>
+            <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;Nelder-Mead&#39;</span><span class="p">)</span>
+        <span class="n">theta_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">opt_tmp_theta</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">p_norm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p_list</span><span class="p">[</span><span class="n">kkk</span><span class="p">]</span><span class="o">*</span><span class="n">opt_tmp_theta</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">q_norm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q_list</span><span class="p">[</span><span class="n">kkk</span><span class="p">])</span>
+    <span class="c1"># Find heat of adsorption</span>
+    <span class="n">T_ref</span> <span class="o">=</span> <span class="n">T_list</span><span class="p">[</span><span class="n">i_ref</span><span class="p">]</span>
+    <span class="n">T_ref_arr</span> <span class="o">=</span> <span class="n">T_ref</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">T_list</span><span class="p">)</span>
+    <span class="n">T_data_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">T_list</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">err_dH</span><span class="p">(</span><span class="n">dH</span><span class="p">):</span>
+        <span class="n">theta_pred</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">dH</span><span class="o">/</span><span class="mf">8.31446</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">T_data_arr</span> <span class="o">-</span> <span class="mi">1</span><span class="o">/</span><span class="n">T_ref_arr</span><span class="p">))</span>
+        <span class="n">err_theta</span> <span class="o">=</span> <span class="n">theta_pred</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">theta_list</span><span class="p">)</span>
+        <span class="n">err_sqr_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">err_theta</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">err_sqr_mean</span>
+    <span class="n">opt_res_dH</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span>
+        <span class="n">err_dH</span><span class="p">,</span><span class="mi">20000</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;Nelder-Mead&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">opt_res_dH</span><span class="o">.</span><span class="n">fun</span> <span class="o">&gt;</span> <span class="mf">0.1</span><span class="p">:</span>
+        <span class="n">opt_res_dH_pre</span> <span class="o">=</span> <span class="n">opt_res_dH</span>
+        <span class="n">opt_res_dH</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span>
+            <span class="n">err_dH</span><span class="p">,</span><span class="mi">20000</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;Powell&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">opt_res_dH_pre</span><span class="o">.</span><span class="n">fun</span> <span class="o">&lt;</span> <span class="n">opt_res_dH</span><span class="o">.</span><span class="n">fun</span><span class="p">:</span>
+            <span class="n">opt_res_dH</span> <span class="o">=</span> <span class="n">opt_res_dH_pre</span>
+    <span class="c1">#print(opt_res_dH)</span>
+    <span class="n">dH</span> <span class="o">=</span> <span class="n">opt_res_dH</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">p_norm_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">p_norm</span><span class="p">)</span>
+    <span class="n">q_norm_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">q_norm</span><span class="p">)</span>
+    <span class="n">fit_res_all</span> <span class="o">=</span> <span class="n">best_isomodel</span><span class="p">(</span><span class="n">p_ref</span><span class="p">,</span><span class="n">q_ref</span><span class="p">,</span> 
+            <span class="n">iso_par_nums</span><span class="p">,</span> <span class="n">iso_fun_lists</span><span class="p">,</span> <span class="n">iso_fun_index</span><span class="p">,</span> <span class="n">tol</span><span class="p">)</span>
+
+            <span class="c1">#p_norm_arr,q_norm_arr, tol = 1E-5)</span>
+    <span class="n">iso_ref</span> <span class="o">=</span> <span class="n">fit_res_all</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">err_fit_all</span> <span class="o">=</span> <span class="n">fit_res_all</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+    <span class="n">iso_params</span> <span class="o">=</span> <span class="n">fit_res_all</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">str_best</span> <span class="o">=</span> <span class="n">fit_res_all</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">R_gas</span> <span class="o">=</span> <span class="mf">8.3145</span>
+    <span class="n">iso_all</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">P_in</span><span class="p">,</span> <span class="n">T_in</span> <span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">iso_ref</span><span class="p">(</span><span class="n">P_in</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">dH</span><span class="o">/</span><span class="n">R_gas</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">T_in</span> <span class="o">-</span> <span class="mi">1</span><span class="o">/</span><span class="n">T_ref</span><span class="p">))),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,])</span>
+    <span class="n">iso_all</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">P_in</span><span class="p">,</span> <span class="n">T_in</span> <span class="p">:</span> <span class="n">iso_ref</span><span class="p">(</span><span class="n">P_in</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">dH</span><span class="o">/</span><span class="n">R_gas</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">T_in</span> <span class="o">-</span> <span class="mi">1</span><span class="o">/</span><span class="n">T_ref</span><span class="p">)))</span>
+    <span class="c1">#print(err_fit_all)</span>
+    <span class="c1">#print(fit_res_all[2])</span>
+    <span class="c1">#q_pre_norm = iso_ref(p_norm_arr)</span>
+    <span class="c1">#diff_all = (q_pre_norm - q_norm_arr)/(q_norm_arr+1E-3)</span>
+    <span class="c1">#err_fit_all = np.mean(diff_all**2)</span>
+    <span class="n">var_return</span> <span class="o">=</span> <span class="p">(</span><span class="n">iso_all</span><span class="p">,</span> <span class="n">iso_params</span><span class="p">,</span> <span class="n">str_best</span><span class="p">,</span> <span class="n">err_fit_all</span><span class="p">,</span>
+            <span class="n">dH</span><span class="p">,</span> <span class="n">T_ref</span><span class="p">,</span> <span class="n">theta_list</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">var_return</span></div>
+    <span class="c1">#return iso_all, fnval_ref, theta_list, err_fit_all, dH, T_ref, iso_params</span>
+
+<span class="c1">#%% RAST 1: (ln \gamma)</span>
+<span class="k">def</span> <span class="nf">ln_gamma_i</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">Lamb</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">piA_RT</span><span class="p">):</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">ln_gamma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>   <span class="c1"># array N</span>
+    <span class="n">sum_xlam</span> <span class="o">=</span> <span class="p">[]</span>   <span class="c1"># array N</span>
+    <span class="n">sum_xlam_ov_xlam</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">exp_term</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+        <span class="n">xlam_tmp</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+            <span class="n">xlam_tmp</span> <span class="o">=</span> <span class="n">xlam_tmp</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="n">jj</span><span class="p">]</span><span class="o">*</span><span class="n">Lamb</span><span class="p">[</span><span class="n">ii</span><span class="p">,</span><span class="n">jj</span><span class="p">]</span>
+        <span class="n">sum_xlam</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xlam_tmp</span><span class="p">)</span>
+        <span class="n">sum_xlam_xlam</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+            <span class="n">sum_xlam_tmp</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">ll</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+                <span class="n">sum_xlam_tmp</span> <span class="o">=</span> <span class="n">sum_xlam_tmp</span> <span class="o">+</span> <span class="n">Lamb</span><span class="p">[</span><span class="n">kk</span><span class="p">,</span><span class="n">ll</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">ll</span><span class="p">]</span>
+            <span class="n">sum_xlam_xlam</span> <span class="o">=</span> <span class="n">sum_xlam_xlam</span> <span class="o">+</span> <span class="n">Lamb</span><span class="p">[</span><span class="n">kk</span><span class="p">,</span><span class="n">ii</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span><span class="o">/</span><span class="n">sum_xlam_tmp</span>
+        <span class="n">sum_xlam_ov_xlam</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sum_xlam_xlam</span><span class="p">)</span>
+        <span class="n">exp_term_tmp</span> <span class="o">=</span> <span class="mi">1</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">C</span><span class="o">*</span><span class="n">piA_RT</span><span class="p">)</span>
+        <span class="n">exp_term</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">exp_term_tmp</span><span class="p">)</span>
+        <span class="n">all_term_tmp</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">xlam_tmp</span><span class="p">)</span><span class="o">-</span><span class="n">sum_xlam_xlam</span><span class="p">)</span><span class="o">*</span><span class="n">exp_term_tmp</span>
+        <span class="n">ln_gamma</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">all_term_tmp</span>
+    <span class="k">return</span> <span class="n">ln_gamma</span>
+
+<span class="c1">#%% RAST 2: RAST mixture isotherm model</span>
+<span class="k">def</span> <span class="nf">rast</span><span class="p">(</span><span class="n">isotherm_list</span><span class="p">,</span><span class="n">P_i</span><span class="p">,</span><span class="n">T</span><span class="p">,</span> <span class="n">Lamb</span><span class="p">,</span> <span class="n">C</span><span class="p">):</span>
+    
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to develop mixture isotherm model with RAST.</span>
+<span class="sd">    </span>
+<span class="sd">    :param isotherm_list: Pure isotherm function list of each components</span>
+<span class="sd">    :param P_i: Partial pressure list of each components</span>
+<span class="sd">    :param T: Temperature</span>
+<span class="sd">    :param Lamb: Lambda matrix</span>
+<span class="sd">    :param C: constant C for equation ?</span>
+<span class="sd">    </span>
+<span class="sd">    :return: q_return</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">Lamb</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Lambda should be N x N array or matrix!&#39;</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">elif</span> <span class="n">Lamb</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">Lamb</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Lambda should be N x N array or matrix!&#39;</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="n">Lamb</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    def spreading_pressure(iso, P_max):</span>
+<span class="sd">        P_ran = np.linspace(0.0001,P_max)</span>
+<span class="sd">        q_ov_P = iso(P_ran)/P_ran</span>
+<span class="sd">        spr_P = trapz(q_ov_P, P_ran)</span>
+<span class="sd">        return spr_P</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">iso_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1">#iso_spr = []</span>
+    <span class="k">for</span> <span class="n">isoo</span> <span class="ow">in</span> <span class="n">isotherm_list</span><span class="p">:</span>
+        <span class="n">iso_tmp</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">pp</span><span class="p">:</span> <span class="n">isoo</span><span class="p">(</span><span class="n">pp</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span>
+        <span class="n">iso_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iso_tmp</span><span class="p">)</span>
+        <span class="c1">#iso_spr_tmp = lambda ppp: spreading_pressure(iso_tmp, ppp)</span>
+        <span class="c1">#iso_spr.append(iso_spr_tmp)</span>
+    <span class="k">def</span> <span class="nf">spr_press</span><span class="p">(</span><span class="n">isoPT</span><span class="p">,</span> <span class="n">P_max</span><span class="p">,</span><span class="n">T</span><span class="p">):</span>
+        <span class="n">P_ran</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">,</span><span class="n">P_max</span><span class="p">)</span>
+        <span class="n">q_ov_P</span> <span class="o">=</span> <span class="n">isoPT</span><span class="p">(</span><span class="n">P_ran</span><span class="p">,</span><span class="n">T</span><span class="p">)</span><span class="o">/</span><span class="n">P_ran</span>
+        <span class="n">spr_P</span> <span class="o">=</span> <span class="n">trapz</span><span class="p">(</span><span class="n">q_ov_P</span><span class="p">,</span> <span class="n">P_ran</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">spr_P</span>
+
+    <span class="k">def</span> <span class="nf">spreading_P_err</span><span class="p">(</span><span class="n">x_N_piART</span><span class="p">):</span>
+        <span class="n">xx_first</span> <span class="o">=</span> <span class="n">x_N_piART</span><span class="p">[:</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">xx_last</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">xx_first</span><span class="p">)]</span>
+        <span class="n">xx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">xx_first</span><span class="p">,</span> <span class="n">xx_last</span><span class="p">])</span>
+        <span class="n">rms_err</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">xx</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">&lt;</span><span class="mf">0.0001</span><span class="p">:</span>
+                <span class="n">rms_err</span> <span class="o">=</span> <span class="n">rms_err</span><span class="o">+</span><span class="mi">50</span><span class="o">*</span><span class="n">xx</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span>
+                <span class="n">xx</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0001</span>
+            <span class="k">elif</span> <span class="n">xx</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.999</span><span class="p">:</span>
+                <span class="n">rms_err</span> <span class="o">=</span> <span class="n">rms_err</span><span class="o">+</span><span class="mi">50</span><span class="o">*</span><span class="p">(</span><span class="n">xx</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+                <span class="n">xx</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.9999</span>
+        
+        <span class="n">spr_P</span> <span class="o">=</span> <span class="n">x_N_piART</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">ln_gam</span> <span class="o">=</span> <span class="n">ln_gamma_i</span><span class="p">(</span><span class="n">xx</span><span class="p">,</span><span class="n">Lamb</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">spr_P</span><span class="p">,)</span>
+        <span class="n">gamm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">ln_gam</span><span class="p">)</span>
+        <span class="n">Po_i</span> <span class="o">=</span> <span class="n">P_i</span><span class="o">/</span><span class="n">gamm</span><span class="o">/</span><span class="n">xx</span>
+        <span class="n">spr_P_new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+            <span class="c1">#spr_P_tmp = iso_spr[ii](Po_i[ii])</span>
+            <span class="n">spr_P_tmp</span> <span class="o">=</span> <span class="n">spr_press</span><span class="p">(</span><span class="n">isotherm_list</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span><span class="n">Po_i</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span><span class="n">T</span><span class="p">)</span>
+            <span class="n">spr_P_new</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">spr_P_tmp</span>
+        <span class="n">rms_err</span> <span class="o">=</span> <span class="n">rms_err</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">spr_P_new</span> <span class="o">-</span> <span class="n">spr_P</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rms_err</span>
+    
+    <span class="n">y_i</span> <span class="o">=</span> <span class="n">P_i</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">P_i</span><span class="p">)</span>
+    <span class="n">x_init</span> <span class="o">=</span> <span class="n">P_i</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">P_i</span><span class="p">)</span>
+    <span class="n">x_init</span> <span class="o">=</span> <span class="n">x_init</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    
+    <span class="n">piA_RT_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">qm</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1">#theta = []</span>
+    <span class="n">bP</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">iso</span><span class="p">,</span><span class="n">pp</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">isotherm_list</span><span class="p">,</span><span class="n">P_i</span><span class="p">):</span>
+        <span class="n">P_ran</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">,</span><span class="n">pp</span><span class="p">)</span>
+        <span class="n">q_P</span> <span class="o">=</span> <span class="n">iso</span><span class="p">(</span><span class="n">P_ran</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span><span class="o">/</span><span class="n">P_ran</span>
+        <span class="n">piA_RT_tmp</span> <span class="o">=</span> <span class="n">trapz</span><span class="p">(</span><span class="n">q_P</span><span class="p">,</span><span class="n">P_ran</span><span class="p">)</span>
+        <span class="n">piA_RT_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">piA_RT_tmp</span><span class="p">)</span>
+        <span class="n">q_max</span> <span class="o">=</span> <span class="n">iso</span><span class="p">(</span><span class="mf">1E8</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span>
+        <span class="n">theta_tmp</span> <span class="o">=</span> <span class="n">q_P</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">pp</span><span class="o">/</span><span class="n">q_max</span>
+        <span class="n">bP_tmp</span> <span class="o">=</span> <span class="n">theta_tmp</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">theta_tmp</span><span class="p">)</span>
+        <span class="n">bP</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bP_tmp</span><span class="p">)</span>
+        <span class="c1">#theta.append(theta_tmp)</span>
+        <span class="n">qm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q_max</span><span class="p">)</span>
+    <span class="n">bP_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">bP</span><span class="p">)</span>
+    <span class="n">q_extended</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">qm</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bP</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span> <span class="n">bP_sum</span><span class="p">)</span>
+    <span class="n">x_extended</span> <span class="o">=</span> <span class="n">q_extended</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">q_extended</span><span class="p">)</span>
+    <span class="n">x_ext_init</span> <span class="o">=</span> <span class="n">x_extended</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">opt_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">opt_x_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">opt_fn_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">spr_P0</span> <span class="ow">in</span> <span class="n">piA_RT_list</span><span class="p">:</span>
+        <span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">x_init</span><span class="p">,</span> <span class="p">[</span><span class="n">spr_P0</span><span class="p">]])</span>
+        <span class="n">optres_tmp</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">spreading_P_err</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;Nelder-mead&#39;</span><span class="p">)</span>
+        <span class="n">opt_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="p">)</span>
+        <span class="n">opt_x_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">opt_fn_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span> <span class="o">&lt;</span> <span class="mf">1E-6</span><span class="p">:</span>
+            <span class="c1">#print(optres_tmp.fun)</span>
+            <span class="c1">#print(&#39;YEAH&#39;)</span>
+            <span class="k">break</span>
+        <span class="n">optres_tmp</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">spreading_P_err</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;Powell&#39;</span><span class="p">)</span>
+        <span class="n">opt_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="p">)</span>
+        <span class="n">opt_x_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">opt_fn_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span> <span class="o">&lt;</span> <span class="mf">1E-2</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">optres_tmp</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">spreading_P_err</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;COBYLA&#39;</span><span class="p">)</span>
+        <span class="n">opt_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="p">)</span>
+        <span class="n">opt_x_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">opt_fn_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span> <span class="o">&lt;</span> <span class="mf">1E-2</span><span class="p">:</span>
+            <span class="k">break</span>
+    <span class="k">for</span> <span class="n">spr_P0</span> <span class="ow">in</span> <span class="n">piA_RT_list</span><span class="p">:</span>
+        <span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">x_ext_init</span><span class="p">,</span> <span class="p">[</span><span class="n">spr_P0</span><span class="p">]])</span>
+        <span class="n">optres_tmp</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">spreading_P_err</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;Nelder-mead&#39;</span><span class="p">)</span>
+        <span class="n">opt_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="p">)</span>
+        <span class="n">opt_x_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">opt_fn_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span> <span class="o">&lt;</span> <span class="mf">1E-2</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">optres_tmp</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">spreading_P_err</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;Powell&#39;</span><span class="p">)</span>
+        <span class="n">opt_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="p">)</span>
+        <span class="n">opt_x_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">opt_fn_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span> <span class="o">&lt;</span> <span class="mf">1E-2</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">optres_tmp</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">spreading_P_err</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;COBYLA&#39;</span><span class="p">)</span>
+        <span class="n">opt_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="p">)</span>
+        <span class="n">opt_x_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">opt_fn_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span> <span class="o">&lt;</span> <span class="mf">1E-2</span><span class="p">:</span>
+            <span class="k">break</span>
+    <span class="c1">#print(opt_fn_list)</span>
+    <span class="n">arg_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">opt_fn_list</span><span class="p">)</span>
+    <span class="n">x_re</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+    <span class="n">x_re</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">opt_list</span><span class="p">[</span><span class="n">arg_min</span><span class="p">]</span><span class="o">.</span><span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">x_re</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">([</span><span class="mi">1</span><span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x_re</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="mi">0</span><span class="p">)])</span>
+    <span class="n">piA_RT_re</span> <span class="o">=</span> <span class="n">opt_list</span><span class="p">[</span><span class="n">arg_min</span><span class="p">]</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">ln_gam_re</span> <span class="o">=</span> <span class="n">ln_gamma_i</span><span class="p">(</span><span class="n">x_re</span><span class="p">,</span><span class="n">Lamb</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">piA_RT_re</span><span class="p">)</span>
+    <span class="n">gamma_re</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">ln_gam_re</span><span class="p">)</span>
+    <span class="c1">#print(iso_spr[0](P_i[0]/optres_tmp.x[0]/gamma_re[0]))</span>
+    <span class="c1">#print(iso_spr[1](P_i[1]/(1- optres_tmp.x[0])/gamma_re[1]))</span>
+    <span class="n">arg_0</span> <span class="o">=</span> <span class="n">x_re</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="n">arg_non0</span> <span class="o">=</span> <span class="n">arg_0</span> <span class="o">==</span> <span class="kc">False</span>
+    <span class="n">P_pure</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+    <span class="n">P_pure</span><span class="p">[</span><span class="n">arg_non0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">P_i</span><span class="p">)[</span><span class="n">arg_non0</span><span class="p">]</span><span class="o">/</span><span class="n">x_re</span><span class="p">[</span><span class="n">arg_non0</span><span class="p">]</span><span class="o">/</span><span class="n">gamma_re</span><span class="p">[</span><span class="n">arg_non0</span><span class="p">]</span>
+    <span class="c1">#P_pure[arg_0] = np.array(P_i)[arg_0]/x_re[arg_0]/gamma_re[arg_0]</span>
+    <span class="c1">#P_pure[arg_0] = 0</span>
+    <span class="n">q_pure</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+        <span class="n">q_pure</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">iso_list</span><span class="p">[</span><span class="n">ii</span><span class="p">](</span><span class="n">P_pure</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+    <span class="n">q_tot</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x_re</span><span class="o">/</span><span class="n">q_pure</span><span class="p">))</span>
+    <span class="n">q_return</span> <span class="o">=</span> <span class="n">q_tot</span><span class="o">*</span><span class="n">x_re</span>
+    <span class="k">return</span> <span class="n">q_return</span>
+<span class="k">def</span> <span class="nf">iso2isoArr</span><span class="p">(</span><span class="n">iso_P_only</span><span class="p">,</span> <span class="n">dH</span><span class="p">,</span><span class="n">T_ref</span><span class="p">):</span>
+    <span class="n">iso_PT</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">P</span><span class="p">,</span><span class="n">T</span><span class="p">:</span> <span class="n">iso_P_only</span><span class="p">(</span><span class="n">Arrh</span><span class="p">(</span><span class="n">T</span><span class="p">,</span><span class="n">dH</span><span class="p">,</span><span class="n">T_ref</span><span class="p">)</span><span class="o">*</span><span class="n">P</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">iso_PT</span>
+
+
+<span class="c1"># %% IAST funciton</span>
+<div class="viewcode-block" id="IAST"><a class="viewcode-back" href="../../isofit.html#pyAPEP.isofit.IAST">[docs]</a><span class="k">def</span> <span class="nf">IAST</span><span class="p">(</span><span class="n">isotherm_list</span><span class="p">,</span> <span class="n">P_i</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
+    
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to develop the mixture isotherm model for given datast.</span>
+<span class="sd">    </span>
+<span class="sd">    :param isotherm_list: Pure isotherm function list of each components</span>
+<span class="sd">    :param P_i: Partial pressure of each components</span>
+<span class="sd">    :param T: Temperature</span>
+<span class="sd">    </span>
+<span class="sd">    :return: q_return</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">isotherm_list</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">P_i</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;# of funcitons in &quot;isotherm_list&quot; should match the dimension of &quot;P_i!&quot;&#39;</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">isotherm_list</span><span class="p">)</span>
+
+    <span class="n">iso_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">isoo</span> <span class="ow">in</span> <span class="n">isotherm_list</span><span class="p">:</span>
+        <span class="n">iso_tmp</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">pp</span><span class="p">:</span> <span class="n">isoo</span><span class="p">(</span><span class="n">pp</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span>
+        <span class="n">iso_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iso_tmp</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">spr_press</span><span class="p">(</span><span class="n">isoPT</span><span class="p">,</span> <span class="n">P_max</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
+        <span class="n">P_ran</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">,</span> <span class="n">P_max</span><span class="p">,</span> <span class="mi">101</span><span class="p">)</span>
+        <span class="n">q_ov_P</span> <span class="o">=</span> <span class="n">isoPT</span><span class="p">(</span><span class="n">P_ran</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span><span class="o">/</span><span class="n">P_ran</span>
+        <span class="n">spr_P</span> <span class="o">=</span> <span class="n">trapz</span><span class="p">(</span><span class="n">q_ov_P</span><span class="p">,</span> <span class="n">P_ran</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">spr_P</span>
+    <span class="k">def</span> <span class="nf">spreading_P_err</span><span class="p">(</span><span class="n">x_N_piART</span><span class="p">):</span>
+        <span class="n">xx_first</span> <span class="o">=</span> <span class="n">x_N_piART</span><span class="p">[:</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">xx_last</span>  <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">xx_first</span><span class="p">)]</span>
+        <span class="n">xx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">xx_first</span><span class="p">,</span> <span class="n">xx_last</span><span class="p">])</span>
+        <span class="n">rms_err</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">xx</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.0001</span><span class="p">:</span>
+                <span class="n">rms_err</span> <span class="o">=</span> <span class="n">rms_err</span> <span class="o">+</span> <span class="mi">50</span><span class="o">*</span><span class="n">xx</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span>
+                <span class="n">xx</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0001</span>
+            <span class="k">elif</span> <span class="n">xx</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.9995</span><span class="p">:</span>
+                <span class="n">rms_err</span> <span class="o">=</span> <span class="n">rms_err</span> <span class="o">+</span> <span class="mi">50</span><span class="o">*</span><span class="p">(</span><span class="mf">0.9995</span> <span class="o">-</span> <span class="n">xx</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span>
+                <span class="n">xx</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.9995</span>
+        <span class="n">spr_P</span> <span class="o">=</span> <span class="n">x_N_piART</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">Po_i</span> <span class="o">=</span> <span class="n">P_i</span><span class="o">/</span><span class="n">xx</span>
+        <span class="n">spr_P_new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">P_i</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.001</span><span class="p">:</span>
+                <span class="n">spr_P_new</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">spr_P</span>
+                <span class="n">rms_err</span> <span class="o">=</span> <span class="n">rms_err</span> <span class="o">+</span> <span class="mi">1000</span><span class="o">*</span><span class="n">xx</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span>
+                <span class="k">continue</span>
+            <span class="n">spr_P_tmp</span> <span class="o">=</span> <span class="n">spr_press</span><span class="p">(</span><span class="n">isotherm_list</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">Po_i</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">T</span><span class="p">)</span>
+            <span class="n">spr_P_new</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">spr_P_tmp</span>
+        <span class="n">rms_err</span> <span class="o">=</span> <span class="n">rms_err</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">spr_P_new</span> <span class="o">-</span> <span class="n">spr_P</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rms_err</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">P_i</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.001</span><span class="p">:</span>
+        <span class="n">q_return</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">P_i</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">q_return</span>
+    <span class="n">y_i</span> <span class="o">=</span> <span class="n">P_i</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">P_i</span><span class="p">)</span>
+    <span class="n">x_init</span> <span class="o">=</span> <span class="n">P_i</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">P_i</span><span class="p">)</span>
+    <span class="n">x_init</span> <span class="o">=</span> <span class="n">x_init</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Initial guess: x_ext_init, piA_RT_list</span>
+    <span class="n">piA_RT_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">qm</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">bP</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">iso</span><span class="p">,</span> <span class="n">pp</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">isotherm_list</span><span class="p">,</span> <span class="n">P_i</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">pp</span> <span class="o">&lt;</span> <span class="mf">0.0001</span><span class="p">:</span>
+            <span class="n">bP</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">qm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="n">P_ran</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0001</span><span class="p">,</span> <span class="n">pp</span><span class="p">,</span> <span class="mi">101</span><span class="p">)</span>
+        <span class="n">q_P</span> <span class="o">=</span> <span class="n">iso</span><span class="p">(</span><span class="n">P_ran</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span><span class="o">/</span><span class="n">P_ran</span>
+        <span class="n">piA_RT_tmp</span> <span class="o">=</span> <span class="n">trapz</span><span class="p">(</span><span class="n">q_P</span><span class="p">,</span> <span class="n">P_ran</span><span class="p">)</span>
+        <span class="n">piA_RT_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">piA_RT_tmp</span><span class="p">)</span>
+        <span class="n">q_max</span> <span class="o">=</span> <span class="n">iso</span><span class="p">(</span><span class="mf">1E8</span><span class="p">,</span> <span class="n">T</span><span class="p">)</span>
+        <span class="n">theta_tmp</span> <span class="o">=</span> <span class="n">q_P</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">pp</span><span class="o">/</span><span class="n">q_max</span>
+        <span class="n">bP_tmp</span> <span class="o">=</span> <span class="n">theta_tmp</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">theta_tmp</span><span class="p">)</span>
+        <span class="n">bP</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bP_tmp</span><span class="p">)</span>
+        <span class="n">qm</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q_max</span><span class="p">)</span>
+    <span class="n">bP_sum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">bP</span><span class="p">)</span>
+    <span class="n">q_extended</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">qm</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bP</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">bP_sum</span><span class="p">)</span>
+    <span class="n">x_extended</span> <span class="o">=</span> <span class="n">q_extended</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">q_extended</span><span class="p">)</span>
+    <span class="n">x_ext_init</span> <span class="o">=</span> <span class="n">x_extended</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">opt_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">opt_x_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">opt_fn_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">spr_P0</span> <span class="ow">in</span> <span class="n">piA_RT_list</span><span class="p">:</span>
+        <span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">x_init</span><span class="p">,</span> <span class="p">[</span><span class="n">spr_P0</span><span class="p">]])</span>
+        <span class="c1"># Nelder-Mead</span>
+        <span class="n">optres_tmp</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">spreading_P_err</span><span class="p">,</span>
+        <span class="n">x0</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;Nelder-mead&#39;</span><span class="p">)</span>
+        <span class="n">opt_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="p">)</span>
+        <span class="n">opt_x_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">opt_fn_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span> <span class="o">&lt;</span> <span class="mf">1E-6</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="c1"># Powell</span>
+        <span class="n">optres_tmp</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">spreading_P_err</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span>
+        <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;Powell&#39;</span><span class="p">)</span>
+        <span class="n">opt_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="p">)</span>
+        <span class="n">opt_x_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">opt_fn_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span> <span class="o">&lt;</span> <span class="mf">1E-2</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="c1"># COBYLA</span>
+        <span class="n">optres_tmp</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">spreading_P_err</span><span class="p">,</span>
+        <span class="n">x0</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span>  <span class="s1">&#39;COBYLA&#39;</span><span class="p">)</span>
+        <span class="n">opt_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="p">)</span>
+        <span class="n">opt_x_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">opt_fn_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span> <span class="o">&lt;</span> <span class="mf">1E-2</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="c1"># Differential evolution</span>
+        <span class="n">bound_de</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">x0</span><span class="p">)</span>
+        <span class="n">bound_de</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span>
+        <span class="n">optres_tmp</span> <span class="o">=</span> <span class="n">differential_evolution</span><span class="p">(</span><span class="n">spreading_P_err</span><span class="p">,</span>
+        <span class="n">bounds</span> <span class="o">=</span> <span class="n">bound_de</span><span class="p">)</span>
+        <span class="n">opt_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="p">)</span>
+        <span class="n">opt_x_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">opt_fn_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">optres_tmp</span><span class="o">.</span><span class="n">fun</span> <span class="o">&lt;</span> <span class="mf">1E-2</span><span class="p">:</span>
+            <span class="k">break</span>
+    <span class="n">arg_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">opt_fn_list</span><span class="p">)</span>
+    <span class="n">x_re</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+    <span class="n">x_re</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">opt_list</span><span class="p">[</span><span class="n">arg_min</span><span class="p">]</span><span class="o">.</span><span class="n">x</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">x_re</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">([</span><span class="mi">1</span><span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x_re</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="mi">0</span><span class="p">)])</span>
+    <span class="n">piA_RT_re</span> <span class="o">=</span> <span class="n">opt_list</span><span class="p">[</span><span class="n">arg_min</span><span class="p">]</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">arg_0</span> <span class="o">=</span> <span class="n">x_re</span> <span class="o">&lt;=</span> <span class="mf">0.00001</span>
+    <span class="n">arg_non0</span> <span class="o">=</span> <span class="n">arg_0</span> <span class="o">==</span> <span class="kc">False</span>
+    <span class="n">P_pure</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+    <span class="n">P_pure</span><span class="p">[</span><span class="n">arg_non0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">P_i</span><span class="p">)[</span><span class="n">arg_non0</span><span class="p">]</span><span class="o">/</span><span class="n">x_re</span><span class="p">[</span><span class="n">arg_non0</span><span class="p">]</span>
+    <span class="n">q_pure</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+        <span class="n">q_pure</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">iso_list</span><span class="p">[</span><span class="n">ii</span><span class="p">](</span><span class="n">P_pure</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">q_pure</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mf">0.0001</span><span class="p">:</span>
+            <span class="n">q_pure</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0001</span>
+    <span class="n">q_tot</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">x_re</span><span class="o">/</span><span class="n">q_pure</span><span class="p">))</span>
+    <span class="n">q_return</span> <span class="o">=</span> <span class="n">q_tot</span><span class="o">*</span><span class="n">x_re</span>
+    <span class="k">return</span> <span class="n">q_return</span>            </div>
+
+
+<span class="c1">#%% Main Test</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+
+    <span class="n">p_test</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span> <span class="mi">101</span><span class="p">)</span>
+    <span class="c1">#q_test = 3*0.1*p_test/(1+0.1*p_test)</span>
+    <span class="n">q_test</span> <span class="o">=</span> <span class="mi">4</span><span class="o">*</span><span class="mf">0.02</span><span class="o">*</span><span class="n">p_test</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="mf">0.02</span><span class="o">*</span><span class="n">p_test</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="mf">0.2</span><span class="o">*</span><span class="n">p_test</span><span class="o">/</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="mf">0.2</span><span class="o">*</span><span class="n">p_test</span><span class="p">)</span>
+    <span class="c1">#q_test = 3*(0.1*p_test + 0.1*p_test**2)/(1+0.1*p_test+0.05*p_test**2)</span>
+    <span class="c1">#q_test = 3*0.1*p_test**1.5/(1+0.1*p_test**1.5)</span>
+    
+
+    <span class="n">res_best_iso</span> <span class="o">=</span> <span class="n">best_isomodel</span><span class="p">(</span><span class="n">p_test</span><span class="p">,</span> <span class="n">q_test</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">],</span> 
+            <span class="n">iso_fun_lists</span> <span class="o">=</span> <span class="n">iso_fn_candidates</span><span class="p">,</span>
+            <span class="n">iso_fun_index</span> <span class="o">=</span> <span class="n">iso_fn_candidate_index</span><span class="p">,</span>
+            <span class="n">tol</span> <span class="o">=</span> <span class="mf">1.0E-5</span>
+            <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">res_best_iso</span><span class="p">)</span>
+
+<span class="c1"># TEST: IAST</span>
+    <span class="k">def</span> <span class="nf">iso1</span><span class="p">(</span><span class="n">PP</span><span class="p">,</span> <span class="n">TT</span><span class="p">):</span>
+        <span class="n">numerr</span> <span class="o">=</span> <span class="mi">2</span><span class="o">*</span><span class="mf">0.1</span><span class="o">*</span><span class="n">PP</span><span class="o">*</span><span class="p">(</span> <span class="mi">1</span><span class="o">+</span> <span class="n">TT</span><span class="o">*</span><span class="mf">0.000001</span> <span class="p">)</span>
+        <span class="n">denomm</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="mf">0.1</span><span class="o">*</span><span class="n">PP</span>
+        <span class="k">return</span> <span class="n">numerr</span><span class="o">/</span><span class="n">denomm</span>
+    
+    <span class="k">def</span> <span class="nf">iso2</span><span class="p">(</span><span class="n">PP</span><span class="p">,</span> <span class="n">TT</span><span class="p">):</span>
+        <span class="n">numerr</span> <span class="o">=</span> <span class="mi">1</span><span class="o">*</span><span class="p">(</span><span class="mf">0.1</span><span class="o">*</span><span class="n">PP</span> <span class="o">+</span> <span class="mf">0.02</span><span class="o">*</span><span class="n">PP</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">TT</span><span class="o">*</span><span class="mf">0.00001</span><span class="p">)</span>
+        <span class="n">denomm</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="mf">0.1</span><span class="o">*</span><span class="n">PP</span> <span class="o">+</span> <span class="mf">0.01</span><span class="o">*</span><span class="n">PP</span><span class="o">**</span><span class="mi">2</span>
+        <span class="k">return</span> <span class="n">numerr</span><span class="o">/</span><span class="n">denomm</span>
+
+    <span class="k">def</span> <span class="nf">iso3</span><span class="p">(</span><span class="n">PP</span><span class="p">,</span> <span class="n">TT</span><span class="p">):</span>
+        <span class="n">numerr</span> <span class="o">=</span> <span class="mi">1</span><span class="o">*</span><span class="p">(</span><span class="mf">0.2</span><span class="o">*</span><span class="n">PP</span> <span class="o">+</span> <span class="mf">0.04</span><span class="o">*</span><span class="n">PP</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">denomm</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="mf">0.2</span><span class="o">*</span><span class="n">PP</span> <span class="o">+</span> <span class="mf">0.04</span><span class="o">*</span><span class="n">PP</span><span class="o">**</span><span class="mi">2</span>
+        <span class="k">return</span> <span class="n">numerr</span><span class="o">/</span><span class="n">denomm</span>
+
+    <span class="n">P_partial</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0001</span><span class="p">,</span> <span class="mf">1.4</span><span class="p">,</span> <span class="mf">0.0001</span><span class="p">]</span>
+    <span class="n">T_current</span> <span class="o">=</span> <span class="mi">300</span>
+    <span class="n">iso_list_test</span> <span class="o">=</span> <span class="p">[</span><span class="n">iso1</span><span class="p">,</span> <span class="n">iso2</span><span class="p">,</span> <span class="n">iso3</span><span class="p">]</span>
+    <span class="n">IAST_test_res</span>  <span class="o">=</span> <span class="n">IAST</span><span class="p">(</span><span class="n">iso_list_test</span><span class="p">,</span> <span class="n">P_partial</span><span class="p">,</span> <span class="n">T_current</span><span class="p">)</span>
+    
+    <span class="nb">print</span><span class="p">(</span><span class="n">IAST_test_res</span><span class="p">)</span>
+    
+    <span class="c1">#p_test = np.linspace(0,100, 101)</span>
+    <span class="c1">#q_vali = res_best_iso[0](p_test) </span>
+    <span class="c1">#plt.plot(p_test, q_vali)</span>
+    <span class="c1">#plt.show()</span>
+    
+<span class="c1"># TEST: diff_T</span>
+    <span class="n">R_gas</span> <span class="o">=</span> <span class="mf">8.3145</span>
+    <span class="n">dH_test</span> <span class="o">=</span> <span class="mi">10</span><span class="o">*</span><span class="mi">1000</span>
+    <span class="k">def</span> <span class="nf">Lang_PTdH</span><span class="p">(</span><span class="n">P</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">par</span><span class="p">,</span> <span class="n">dH</span><span class="p">,</span> <span class="n">Tref</span><span class="p">):</span>
+        <span class="n">bP</span> <span class="o">=</span> <span class="n">par</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">P</span><span class="o">*</span><span class="n">Arrh</span><span class="p">(</span><span class="n">dH</span><span class="p">,</span><span class="n">T</span><span class="p">,</span><span class="n">Tref</span><span class="p">)</span>
+        <span class="n">numer</span> <span class="o">=</span> <span class="n">par</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">bP</span>
+        <span class="n">denom</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">bP</span>
+        <span class="k">return</span> <span class="n">numer</span><span class="o">/</span><span class="n">denom</span>
+    <span class="n">par_test</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">]</span>
+    
+    <span class="n">q_T1</span> <span class="o">=</span> <span class="n">Lang_PTdH</span><span class="p">(</span><span class="n">p_test</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="n">par_test</span><span class="p">,</span> <span class="n">dH_test</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+    <span class="n">q_T2</span> <span class="o">=</span> <span class="n">Lang_PTdH</span><span class="p">(</span><span class="n">p_test</span><span class="p">,</span> <span class="mi">320</span><span class="p">,</span> <span class="n">par_test</span><span class="p">,</span> <span class="n">dH_test</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+    <span class="n">q_T3</span> <span class="o">=</span> <span class="n">Lang_PTdH</span><span class="p">(</span><span class="n">p_test</span><span class="p">,</span> <span class="mi">340</span><span class="p">,</span> <span class="n">par_test</span><span class="p">,</span> <span class="n">dH_test</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+    <span class="n">q_T4</span> <span class="o">=</span> <span class="n">Lang_PTdH</span><span class="p">(</span><span class="n">p_test</span><span class="p">,</span> <span class="mi">360</span><span class="p">,</span> <span class="n">par_test</span><span class="p">,</span> <span class="n">dH_test</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+    
+    <span class="n">p_list_test</span> <span class="o">=</span> <span class="p">[</span><span class="n">p_test</span><span class="p">,</span> <span class="p">]</span><span class="o">*</span><span class="mi">4</span>
+    <span class="n">q_list_test</span> <span class="o">=</span> <span class="p">[</span><span class="n">q_T1</span><span class="p">,</span> <span class="n">q_T2</span><span class="p">,</span> <span class="n">q_T3</span><span class="p">,</span> <span class="n">q_T4</span><span class="p">]</span>
+    <span class="n">T_list_test</span> <span class="o">=</span> <span class="p">[</span><span class="mi">300</span><span class="p">,</span> <span class="mi">320</span><span class="p">,</span> <span class="mi">340</span><span class="p">,</span> <span class="mi">360</span><span class="p">]</span>
+
+    <span class="n">res_diffT_test</span> <span class="o">=</span> <span class="n">fit_diffT</span><span class="p">(</span><span class="n">p_list_test</span><span class="p">,</span> <span class="n">q_list_test</span><span class="p">,</span> <span class="n">T_list_test</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">res_diffT_test</span><span class="p">)</span>
+
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    R_gas = 8.3145</span>
+<span class="sd">    Arrh =  lambda dH,T,Tref: np.exp(abs(dH/R_gas)*(1/T - 1/Tref))</span>
+<span class="sd">    def Lang_PTdH(P,T,par,dH,Tref):</span>
+<span class="sd">        bP = par[1]*P*Arrh(dH,T,Tref)</span>
+<span class="sd">        numer = par[0]*bP</span>
+<span class="sd">        denom = 1 + bP</span>
+<span class="sd">        return numer/denom</span>
+<span class="sd">    lang1 = lambda P,T: Lang_PTdH(P,T,[3, 0.1],10, 300)</span>
+<span class="sd">    lang2 = lambda P,T: Lang_PTdH(P,T,[1, 0.5],20, 300)</span>
+<span class="sd">    P_partial = np.array([2,0.1])</span>
+<span class="sd">    Lambda_test = np.array([[1,0.8],[0.8,1]])</span>
+<span class="sd">    C_test = 1</span>
+<span class="sd">    rast_test_res = rast([lang1,lang2],P_partial,300,Lambda_test,C_test)</span>
+<span class="sd">    print(rast_test_res)</span>
+
+<span class="sd">    print(rast_test_res[0])</span>
+<span class="sd">    print(rast_test_res[1])</span>
+
+<span class="sd">    #%% Main Test 2: Single isotherm fitting error</span>
+<span class="sd">    # Test the iso2err</span>
+<span class="sd">    p_test = np.linspace(0,50, 51)</span>
+<span class="sd">    q_test = 3*0.1*p_test/(1+0.1*p_test)</span>
+<span class="sd">    err_test1 = iso2err([3,0.1], p_test,q_test, Lang)</span>
+<span class="sd">    err_test2 = iso2err([3,0.1,0.1], p_test,q_test, Quad)</span>
+<span class="sd">    err_test3 = iso2err([3,0.1,0.1,0.001], p_test,q_test, DSLa)</span>
+<span class="sd">    print(&#39;[FITTING ERRORS]&#39;)</span>
+<span class="sd">    print(&#39;[for Lagnmuir dummy data]&#39;)</span>
+<span class="sd">    print()</span>
+<span class="sd">    print(&#39;Langmuir:         &#39;, err_test1)</span>
+<span class="sd">    print(&#39;Quadratic:        &#39;,err_test2)</span>
+<span class="sd">    print(&#39;Dualsite Langmuir:&#39;, err_test3)</span>
+
+<span class="sd">    #%% Main Test 3: Single isotherm model fitting</span>
+<span class="sd">    #iso_fn_candi = [Lang,Quad, DSLa]</span>
+<span class="sd">    #iso_fn_candi_str = [&#39;Lang&#39;,&#39;Quad&#39;, &#39;DSLa&#39;]</span>
+<span class="sd">    #iso_par_num = [2,3,4]</span>
+<span class="sd">    parsol_test, fnsol_test,_,_ = find_par(iso_fn_candi[0],iso_par_num[0],p_test,q_test, method_list)</span>
+
+<span class="sd">    isob_test, xb_test, strb_test, fvalb_test =best_isomodel(p_test,q_test)</span>
+<span class="sd">    print(&#39;Function:&#39;, )</span>
+<span class="sd">    print(isob_test)</span>
+<span class="sd">    print(&#39;Parameters:&#39;,xb_test)</span>
+<span class="sd">    print(&#39;Model (string): &#39;,strb_test)</span>
+<span class="sd">&#39;&#39;&#39;</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, anna.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
