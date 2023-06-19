@@ -1,10 +1,3 @@
-"""
-====================================
- :mod:`isofit` module
-====================================
-This module develops the pure and mixuture isotherm function, given the
-partial pressure and adsorption data.
-"""
 #%% Importing
 # numericals
 import numpy as np
@@ -121,23 +114,6 @@ def find_par(isofn, n_par, P,q, methods):
 #%% Single Isotherm 4: Fitting with diff. isotherm models
 def best_isomodel(P, q, iso_par_nums = [2, 3, 4], 
 iso_fun_lists = None, iso_fun_index = None, tol = 1.0E-5):
-    
-    """
-    Function to automatically find best isotherm model for given datast with multiple isotherm and optimizer candidates.
-    
-    Models supported are as follows. Here, :math:`q` is the gas uptake,
-    :math:`P` is partial pressure (fugacity technically).  
-
-    :param P: Partial pressure list
-    :param q: Acutal or simulated uptake list of given P
-    :param iso_par_nums: The number of parameters for isotherm models
-    :param iso_fun_lists: Isotherm function candidates
-    :param iso_fun_index: Each name for iso_fun_lists
-    :param tol: Tolerance
-    
-    :return: isotherm function, estimated parameters of isotherm function, the type of isotherm, and validation error of the model
-    """
-    
     if iso_fun_lists == None:
         iso_fun_lists = []
         for ii in iso_par_nums:
@@ -201,21 +177,6 @@ def fit_diffT(p_list, q_list, T_list, i_ref,
         iso_fun_lists = None, 
         iso_fun_index = None,
         tol = 1.0E-5):
-    
-    """
-    Function to fit isotherm model for given datast based on the different temperatures.
-    
-    :param p_list: Partial pressure list
-    :param q_list: Acutal or simulated uptake list of given P
-    :param T_list: Temperature list
-    :param i_ref: Reference temperature index in T_list
-    :param iso_par_nums: The number of parameters for isotherm models
-    :param iso_fun_lists: Isotherm function candidates
-    :param iso_fun_index: Each name for iso_fun_lists
-    :param tol: Tolerance
-    
-    :return: var_return (isotherm function, isotherm parameters, errors, calculated heat of adsorption, reference temperature, a list of :math:`\theta_{T_{j}}`)
-    """
 
     p_ref = p_list[i_ref]
     q_ref = q_list[i_ref]
@@ -319,19 +280,6 @@ def ln_gamma_i(x,Lamb, C, piA_RT):
 
 #%% RAST 2: RAST mixture isotherm model
 def rast(isotherm_list,P_i,T, Lamb, C):
-    
-    """
-    Function to develop mixture isotherm model with RAST.
-    
-    :param isotherm_list: Pure isotherm function list of each components
-    :param P_i: Partial pressure list of each components
-    :param T: Temperature
-    :param Lamb: Lambda matrix
-    :param C: constant C for equation ?
-    
-    :return: q_return
-    """
-    
     if len(Lamb.shape) != 2:
         print('Lambda should be N x N array or matrix!')
         return
@@ -483,17 +431,6 @@ def iso2isoArr(iso_P_only, dH,T_ref):
 
 # %% IAST funciton
 def IAST(isotherm_list, P_i, T):
-    
-    """
-    Function to develop the mixture isotherm model for given datast.
-    
-    :param isotherm_list: Pure isotherm function list of each components
-    :param P_i: Partial pressure of each components
-    :param T: Temperature
-    
-    :return: q_return
-    """
-    
     if len(isotherm_list) != len(P_i):
         print('# of funcitons in "isotherm_list" should match the dimension of "P_i!"')
         return
@@ -525,17 +462,11 @@ def IAST(isotherm_list, P_i, T):
         Po_i = P_i/xx
         spr_P_new = np.zeros(N)
         for ii in range(N):
-            if P_i[ii] < 0.001:
-                spr_P_new[ii] = spr_P
-                rms_err = rms_err + 1000*xx[ii]**2
-                continue
             spr_P_tmp = spr_press(isotherm_list[ii], Po_i[ii], T)
             spr_P_new[ii] = spr_P_tmp
         rms_err = rms_err + np.sum((spr_P_new - spr_P)**2)
         return rms_err
-    if np.sum(P_i) < 0.001:
-        q_return = np.zeros_like(P_i)
-        return q_return
+
     y_i = P_i/np.sum(P_i)
     x_init = P_i/np.sum(P_i)
     x_init = x_init[:-1]
@@ -545,10 +476,6 @@ def IAST(isotherm_list, P_i, T):
     qm = []
     bP = []
     for iso, pp in zip(isotherm_list, P_i):
-        if pp < 0.0001:
-            bP.append(0)
-            qm.append(0)
-            continue
         P_ran = np.linspace(0.0001, pp, 101)
         q_P = iso(P_ran, T)/P_ran
         piA_RT_tmp = trapz(q_P, P_ran)
@@ -607,15 +534,13 @@ def IAST(isotherm_list, P_i, T):
     x_re[:-1] = opt_list[arg_min].x[:-1]
     x_re[-1] = np.min([1- np.sum(x_re[:-1], 0)])
     piA_RT_re = opt_list[arg_min].x[-1]
-    arg_0 = x_re <= 0.00001
+    arg_0 = x_re == 0
     arg_non0 = arg_0 == False
     P_pure = np.zeros(N)
     P_pure[arg_non0] = np.array(P_i)[arg_non0]/x_re[arg_non0]
     q_pure = np.zeros(N)
     for ii in range(N):
         q_pure[ii] = iso_list[ii](P_pure[ii])
-        if q_pure[ii] <= 0.0001:
-            q_pure[ii] = 0.0001
     q_tot = 1/(np.sum(x_re/q_pure))
     q_return = q_tot*x_re
     return q_return            
