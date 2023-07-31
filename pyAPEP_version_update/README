@@ -1,0 +1,17 @@
+# Three main packages
+- isofit
+- simide
+- simsep
+
+# isofit
+- find_par(isofn, n_par, P, q, methods)
+- best_isomodel(P, q, iso_par_nums, iso_fun_lists, iso_fun_index, tol)
+- fit_diffT(p_list, q_list, T_list, i_ref, iso_par_nums, iso_fun_lists, iso_fun_index, tol)
+- IAST(isotherm_list, P_i, T)
+
+# simide
+- Class: IdealColumn
+
+# simsep
+- Class: column
+
