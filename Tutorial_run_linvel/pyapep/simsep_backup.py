@@ -2,11 +2,11 @@
 # %% Import packages
 import numpy as np
 #from numpy.lib.function_base import _parse_input_dimensions
-from scipy.integrate import odeint, solve_ivp
+from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 import time
 from scipy.interpolate import interp1d
-#from scipy.integrate import solve_ivp
+from scipy.integrate import solve_ivp
  
 # %% Global varaiebls
 R_gas = 8.3145      # 8.3145 J/mol/K
@@ -19,9 +19,8 @@ def Ergun(C_array,T_array, M_molar, mu_vis, D_particle,epsi_void,d,dd,d_fo, N):
     P = np.zeros(N)
     for cc in C_array: 
         P = P + cc*R_gas*T_array
-    dP = d_fo@P
-    #ddP = dd@P
-
+    dP = d@P
+    
     Vs_Vg = (1-epsi_void)/epsi_void
     A =1.75*rho_g/D_particle*Vs_Vg
     B = 150*mu_vis/D_particle**2*Vs_Vg**2
@@ -31,23 +30,12 @@ def Ergun(C_array,T_array, M_molar, mu_vis, D_particle,epsi_void,d,dd,d_fo, N):
     ind_nega = ind_posi == False
     v_pos = (-B[ind_posi]+ np.sqrt(B[ind_posi]**2-4*A[ind_posi]*C[ind_posi]))/(2*A[ind_posi])
     v_neg = (B[ind_nega] - np.sqrt(B[ind_nega]**2+4*A[ind_nega]*C[ind_nega]))/(2*A[ind_nega])
-    # v_neg = 0 
+    
     v_return = np.zeros(N)
     v_return[ind_posi] = v_pos
     v_return[ind_nega] = v_neg
-
-    #AA = -ddP/Vs_Vg
-    #BB = 3.5*rho_g/D_particle*v_return
-    #CC = 150*mu_vis/D_particle**2
-    #dv_pos = AA[ind_posi]/(BB[ind_posi]+CC[ind_posi])
-    #dv_neg = AA[ind_nega]/(BB[ind_nega]-CC[ind_nega])
-    # dv_pos = -epsi_void*ddP[ind_posi]/(3.5*rho_g[ind_posi]/D_particle*v_return[ind_posi]+150*mu_vis[ind_posi]/D_particle**2)/(1-epsi_void)
     
-    # dv_neg = -epsi_void*ddP[ind_nega]/(3.5*rho_g[ind_nega]/D_particle*v_return[ind_nega]-150*mu_vis[ind_posi]/D_particle**2)/(1-epsi_void)
-    # dv_return = np.zeros(N)
-    # dv_return[ind_posi] = dv_pos
-    # dv_return[ind_nega] = dv_neg
-    dv_return = d@v_return
+    dv_return = d_fo@v_return
     return v_return, dv_return
 
 def Ergun_test(dP,M_molar, mu_vis, D_particle,epsi_void):
@@ -77,61 +65,21 @@ def change_node_fn(z_raw, y_raw, N_new):
         for yr in y_raw:
             fn_tmp = interp1d(z_raw,yr)
             y_new_tmp = fn_tmp(z_new)
-            y_new_tmp[y_new_tmp < 0] = 0
             y_return.append(y_new_tmp)
     elif len(y_raw.shape) == 1:
         yy = y_raw
         fn_tmp = interp1d(z_raw, yy, kind = 'cubic')
         z_new = np.linspace(z_raw[0], z_raw[-1],N_new)
         y_return = fn_tmp(z_new)
-        y_return[y_return < 0] = 0
     elif len(y_raw.shape) == 2:
         yy = y_raw[-1,:]
         fn_tmp = interp1d(z_raw, yy, kind = 'cubic')
         z_new = np.linspace(z_raw[0], z_raw[-1],N_new)
         y_return = fn_tmp(z_new)
-        y_return[y_return < 0] = 0
     else:
         print('Input should be 1d or 2d array.')
         return None
-    
     return y_return
-
-# %% GaODE: NewODE function
-def gaode(dy_fun, y0, t, args= None):
-#    if np.isscalar(t):
-#        t_domain = np.linspace(0,t, 10001, dtype=np.float64)
-#    else:
-#        t_domain = np.array(t[:], dtype = np.float64)
-    t_domain = np.array(t[:], dtype = np.float64)
-    y_res = []
-    dt_arr = t_domain[1:] - t_domain[:-1]
-
-    N = len(y0)
-    tt_prev = t_domain[0]
-    y_tmp = np.array(y0, dtype = np.float64)
-    y_res.append(y_tmp)
-    if args == None:
-        for tt, dtt in zip(t_domain[:-1], dt_arr):
-            dy_tmp = dy_fun(y_tmp, tt)
-            y_tmp_new = y_tmp + dy_tmp*dtt
-            tt_prev = tt
-            y_res.append(y_tmp_new)
-            y_tmp = y_tmp_new
-#            if tt%10 == 1:
-#                print(y_tmp_new, y_tmp)
-        y_res_arr = np.array(y_res, dtype = np.float64)
-    else:
-        for tt, dtt in zip(t_domain[1:], dt_arr):
-            dy_tmp = dy_fun(y_tmp, tt, *args)
-            y_tmp_new = y_tmp + dy_tmp*dtt
-            tt_prev = tt
-            y_res.append(y_tmp_new)
-            y_tmp = y_tmp_new
-        y_res_arr = np.array(y_res, dtype=object)
-    
-    return y_res_arr
-
 
 # %% Column class
 class column:
@@ -150,7 +98,6 @@ class column:
             self._required['thermal_info'] = False
         self._required['boundaryC_info'] = False
         self._required['initialC_info'] = False
-        self.is_BASIS = False
         h = L/(N_node-1)
         h_arr = h*np.ones(N_node)
         self._h = h
@@ -387,9 +334,9 @@ class column:
                 P_part.append(C[ii]*R_gas*T/1E5) # in bar
                 C_ov = C_ov + C[ii]
                 P_ov = P_ov + C[ii]*R_gas*T
-                Mu = Mu + C[ii]*self._mu[ii]
+                Mu = C[ii]*self._mu[ii]
             Mu = Mu/C_ov
-            #Mu = np.mean(self._mu)*np.ones_like(self._N)
+
             # Ergun equation
             v,dv = Ergun(C,T,self._M_m,Mu,self._D_p,epsi,
                          self._d,self._dd,self._d_fo, self._N)
@@ -421,20 +368,8 @@ class column:
                 dCdt_tmp = -v*dC[ii] -C[ii]*dv + D_dis[ii]*ddC[ii] - (1-epsi)/epsi*rho_s*dqdt[ii]
                 #dCdt_tmp[0] = +(v_in*C_sta[ii] - v[1]*C[ii][0])/h - (1-epsi)/epsi*rho_s*dqdt[ii][0]
                 #dCdt_tmp[-1]= +(v[-1]*C[ii][-2]- v_out*C[ii][-1])/h - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
-                #dCdt_tmp[0] = v_in*(C_sta[ii]-C[ii][0])/h- (1-epsi)/epsi*rho_s*dqdt[ii][0]
-                #dCdt_tmp[-1]= +(v_out+v[-1])/2*(C[ii][-2]- C[ii][-1])/h - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
-                dCdt_tmp[0] = (v_in*C_sta[ii]-v[0]*C[ii][0])/h- (1-epsi)/epsi*rho_s*dqdt[ii][0]
-                dCdt_tmp[-1]= +(v[-2]*C[ii][-2]- v_out*C[ii][-1])/h - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
-###################################################3
-#                dv0 = (v[0] - v_in)/h
-#                dC0 = (C[ii][0] - C_sta[ii])/h
-#
-#                dvL = (v_out-v[-2])/h
-#                dCL = (C[ii][-1] - C[ii][-2])/h
-#                dCdt_tmp[0] = -v[0]*dC0 - C[ii][0]*dv0 - (1-epsi)/epsi*rho_s*dqdt[ii][0]
-#                dCdt_tmp[-1]= -v_out*dCL-C[ii][-1]*dvL - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
-###################################################3
-
+                dCdt_tmp[0] = v_in*(C_sta[ii]-C[ii][0])/h- (1-epsi)/epsi*rho_s*dqdt[ii][0]
+                dCdt_tmp[-1]= +(v_out+v[-1])/2*(C[ii][-2]- C[ii][-1])/h - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
                 dCdt.append(dCdt_tmp)
  
             dydt_tmp = dCdt+dqdt
@@ -479,401 +414,8 @@ class column:
             print('This took {0:9.3f} mins to run. \n'.format(toc))       
         return y_result, self._z, t_dom
 
-    def run_ma(self, t_max, n_sec = 5, CPUtime_print = False):
-        tic = time.time()/60
-        t_max_int = np.int32(np.floor(t_max), )
-        self._n_sec = n_sec
-        n_t = t_max_int*n_sec+ 1
-        n_comp = self._n_comp
-        D_dif = self._D_disp
-        C_sta = []
-        for ii in range(n_comp):
-            C_sta.append(self._y_in[ii]*self._P_in/R_gas/self._T_in*1E5)
-        Cbound = C_sta
-        k = np.array(self._k_mtc)*self._a_surf
-        T_const = self._T_in
-        P_ov = self._P_in
-        rho = self._rho_s
-        epsi = self._epsi
-        u0 = self._Q_in/epsi/self._A
-        N = self._N
-        
-        # Difference matrix
-        d = self._d
-        dd = self._dd
-
-        t_dom = np.linspace(0,t_max_int, n_t)
-        if t_max_int < t_max:
-            t_dom = np.concatenate((t_dom, [t_max]))
-        
-        def massonly(y,t):
-            C = []
-            q = []
-            dC = []
-            ddC = []
-            for ii in range(n_comp):
-                C.append(y[ii*N:(ii+1)*N])
-                q.append(y[n_comp*N + ii*N : n_comp*N + (ii+1)*N])
-            
-            q_sta = []
-            P_part = []
-            C_ov = np.zeros([N,])
-            for ii in range(n_comp):
-                dC.append(d@C[ii])
-                ddC.append(dd@C[ii])
-                C_ov = C_ov + C[ii]
-            yfrac = []
-            for ii in range(n_comp):
-                yfrac_tmp = C[ii]/C_ov
-                P_part_tmp = yfrac_tmp*P_ov
-                yfrac.append(yfrac_tmp)
-                P_part.append(yfrac_tmp*P_ov) # in bar
-            q_sta = self._iso(P_part ,T_const)
-            #print(q_sta)
-            dqdt = []
-            for ii in range(n_comp):
-                dqdt_tmp = k[ii]*(q_sta[ii] - q[ii])
-                dqdt.append(dqdt_tmp)
-
-            v = u0
-            dCdt = []
-            dydt_pr = []
-            for ii in range(n_comp):
-                dCdt_tmp = -v*dC[ii] + D_dif[ii]*ddC[ii] - (1-epsi)/epsi*rho*dqdt[ii]
-                dCdt_tmp[0] = (v*Cbound[ii] -v*C[ii][0])*d[2,2] - (1-epsi)/epsi*rho*dqdt[ii][0]
-                dCdt.append(dCdt_tmp)
-                dydt_pr.append(dCdt_tmp)
-            for ii in range(n_comp):
-                dydt_pr.append(dqdt[ii])
-            dydt = np.concatenate(dydt_pr)
-            return dydt
-        C_init = []
-        q_init = []
-        for ii in range(n_comp):
-            C_tmp = self._y_init[ii]*self._P_init*1E5/R_gas/self._Tg_init
-            C_init.append(C_tmp)
-            q_tmp = self._q_init[ii]
-            q_init.append(q_tmp)
-        tic = time.time()/60
-        if self._required['Flow direction'] == 'Backward':
-            for ii in range(n_comp):
-                C_init[ii] = self._A_flip@C_init[ii]
-                q_init[ii] = self._A_flip@q_init[ii]
-        y0_tmp = C_init + q_init
-        y0 = np.concatenate(y0_tmp)
-        
-        #RUN
-        y_result = odeint(massonly, y0, t_dom,)
-        
-        if self._required['Flow direction'] == 'Backward':
-            y_tmp = []
-            for ii in range(n_comp*2):
-                mat_tmp = y_result[:, ii*N : (ii+1)*N]
-                y_tmp.append(mat_tmp@self._A_flip)
-            y_flip = np.concatenate(y_tmp, axis = 1)
-            y_result = y_flip
-        self._y = y_result
-        self._t = t_dom
-        toc = time.time()/60 - tic
-        self._CPU_min = toc
-        self._Tg_res = np.ones([len(self._t), 1])@np.reshape(self._Tg_init,[1,-1])
-
-        if CPUtime_print:
-            print('Simulation of this step is completed.')
-            print('This took {0:9.3f} mins to run. \n'.format(toc))       
-        return y_result, self._z, t_dom
-
-
-    def run_ma_POD(self, t_max, n_sec = 5, N_basis = 20, U_basis = None, CPUtime_print = False):
-        tic = time.time()/60
-        if (type(None)==type(U_basis)):
-            if self.is_BASIS:
-                U_basis = self._U_basis
-            else:
-                print("Please use 'find_basis' first to find the basis!")
-                return None
-        elif (type(U_basis) == type(np.array([1,2,3,]))):
-            if len(U_basis) <= 2:
-                if self.is_BASIS:
-                    U_basis = self._U_basis
-                else:
-                    print("Please use 'find_basis' first to find the basis!")
-                    return None
-        U_cut = U_basis[:,:N_basis]
-        
-        tic = time.time()/60
-        t_max_int = np.int32(np.floor(t_max), )
-        self._n_sec = n_sec
-        n_t = t_max_int*n_sec+ 1
-        n_comp = self._n_comp
-        D_dif = self._D_disp
-        C_sta = []
-        for ii in range(n_comp):
-            C_sta.append(self._y_in[ii]*self._P_in/R_gas/self._T_in*1E5)
-        Cbound = C_sta
-
-        k = np.array(self._k_mtc)*self._a_surf
-        T_const = self._T_in
-        P_ov = self._P_in
-        rho = self._rho_s
-        epsi = self._epsi
-        u0 = self._Q_in/epsi/self._A
-        N = self._N
-        
-        # Difference matrix
-        d = self._d
-        dd = self._dd
-
-        t_dom = np.linspace(0,t_max_int, n_t)
-        if t_max_int < t_max:
-            t_dom = np.concatenate((t_dom, [t_max]))
-        
-        def massonly(aa,t):
-            y = U_cut@aa
-            C = []
-            q = []
-            dC = []
-            ddC = []
-            for ii in range(n_comp):
-                C.append(y[ii*N:(ii+1)*N])
-                q.append(y[n_comp*N + ii*N : n_comp*N + (ii+1)*N])
-            
-            q_sta = []
-            P_part = []
-            C_ov = np.zeros([N,])
-            for ii in range(n_comp):
-                dC.append(d@C[ii])
-                ddC.append(dd@C[ii])
-                C_ov = C_ov + C[ii]
-            yfrac = []
-            for ii in range(n_comp):
-                yfrac_tmp = C[ii]/C_ov
-                P_part_tmp = yfrac_tmp*P_ov
-                yfrac.append(yfrac_tmp)
-                P_part.append(yfrac_tmp*P_ov) # in bar
-            q_sta = self._iso(P_part ,T_const)
-            #print(q_sta)
-            dqdt = []
-            for ii in range(n_comp):
-                dqdt_tmp = k[ii]*(q_sta[ii] - q[ii])
-                dqdt.append(dqdt_tmp)
-
-            v = u0
-            dCdt = []
-            dydt_pr = []
-            for ii in range(n_comp):
-                dCdt_tmp = -v*dC[ii] + D_dif[ii]*ddC[ii] - (1-epsi)/epsi*rho*dqdt[ii]
-                dCdt_tmp[0] = (v*Cbound[ii] -v*C[ii][0])*d[2,2] - (1-epsi)/epsi*rho*dqdt[ii][0]
-                dCdt.append(dCdt_tmp)
-                dydt_pr.append(dCdt_tmp)
-            for ii in range(n_comp):
-                dydt_pr.append(dqdt[ii])
-            dydt = np.concatenate(dydt_pr)
-            daadt = U_cut.T@dydt
-            return daadt
-        
-        C_init = []
-        q_init = []
-        for ii in range(n_comp):
-            C_tmp = self._y_init[ii]*self._P_init*1E5/R_gas/self._Tg_init
-            C_init.append(C_tmp)
-            q_tmp = self._q_init[ii]
-            q_init.append(q_tmp)
-
-        tic = time.time()/60
-        if self._required['Flow direction'] == 'Backward':
-            for ii in range(n_comp):
-                C_init[ii] = self._A_flip@C_init[ii]
-                q_init[ii] = self._A_flip@q_init[ii]
-        y0_tmp = C_init + q_init
-        y0 = np.concatenate(y0_tmp)
-        aa0 = U_cut.T@y0
-
-        #RUN
-        aa_result = odeint(massonly, aa0, t_dom,)
-        y_result = aa_result@U_cut.T
-        
-        if self._required['Flow direction'] == 'Backward':
-            y_tmp = []
-            for ii in range(n_comp*2):
-                mat_tmp = y_result[:, ii*N : (ii+1)*N]
-                y_tmp.append(mat_tmp@self._A_flip)
-            y_flip = np.concatenate(y_tmp, axis = 1)
-            y_result = y_flip
-        self._y = y_result
-        self._t = t_dom
-        toc = time.time()/60 - tic
-        self._CPU_min = toc
-        self._Tg_res = np.ones([len(self._t), 1])@np.reshape(self._Tg_init,[1,-1])
-
-        if CPUtime_print:
-            print('Simulation of this step is completed.')
-            print('This took {0:9.3f} mins to run. \n'.format(toc))       
-        return y_result, self._z, t_dom
-
-
-
-## Run mass & momentum balance equations
-    def run_mamo_POD(self, t_max, n_sec = 5, N_basis = 20, U_basis = None, CPUtime_print = False):
-        tic = time.time()/60
-        if (type(None)==type(U_basis)):
-            if self.is_BASIS:
-                U_basis = self._U_basis
-            else:
-                print("Please use 'find_basis' first to find the basis!")
-                return None
-        elif (type(U_basis) == type(np.array([1,2,3,]))):
-            if len(U_basis) <= 2:
-                if self.is_BASIS:
-                    U_basis = self._U_basis
-                else:
-                    print("Please use 'find_basis' first to find the basis!")
-                    return None
-                
-        U_cut = U_basis[:, :N_basis]
-        t_max_int = np.int32(np.floor(t_max), )
-        self._n_sec = n_sec
-        n_t = t_max_int*n_sec+ 1
-        n_comp = self._n_comp
-        C_sta = []
-        for ii in range(n_comp):
-            C_sta.append(self._y_in[ii]*self._P_in/R_gas/self._T_in*1E5)
-        t_dom = np.linspace(0,t_max_int, n_t)
-        if t_max_int < t_max:
-            t_dom = np.concatenate((t_dom, [t_max]))
-        #print(C1_sta)
-
-        # other parmeters
-        epsi = self._epsi
-        rho_s = self._rho_s
-
-        N = self._N
-        def massmomebal(aa,t):
-            y = U_cut@aa
-            C = []
-            q = []
-            for ii in range(n_comp):
-                C.append(y[ii*N:(ii+1)*N])
-                q.append(y[n_comp*N + ii*N : n_comp*N + (ii+1)*N])
- 
-            # Derivatives
-            dC = []
-            ddC = []
-            C_ov = np.zeros(N)
-            P_ov = np.zeros(N)
-            P_part = []
-            Mu = np.zeros(N)
-            T = self._Tg_init
-            for ii in range(n_comp):
-                dC.append(self._d@C[ii])
-                ddC.append(self._dd@C[ii])
-                P_part.append(C[ii]*R_gas*T/1E5) # in bar
-                C_ov = C_ov + C[ii]
-                P_ov = P_ov + C[ii]*R_gas*T
-                Mu = Mu + C[ii]*self._mu[ii]
-            Mu = Mu/C_ov
-            #Mu = np.mean(self._mu)*np.ones_like(self._N)
-            # Ergun equation
-            v,dv = Ergun(C,T,self._M_m,Mu,self._D_p,epsi,
-                         self._d,self._dd,self._d_fo, self._N)
-            
-            # Solid phase
-            qsta = self._iso(P_part, T) # partial pressure in bar
-            dqdt = []
-            if self._order_MTC == 1:
-                for ii in range(n_comp):
-                    dqdt_tmp = self._k_mtc[ii]*(qsta[ii] - q[ii])*self._a_surf
-                    dqdt.append(dqdt_tmp)
-            elif self._order_MTC == 2:
-                for ii in range(n_comp):
-                    dqdt_tmp = self._k_mtc[ii][0]*(qsta[ii] - q[ii])*self._a_surf + self._k_mtc[ii][1]*(qsta[ii] - q[ii])**2*self._a_surf
-                    dqdt.append(dqdt_tmp)
-            # Valve equations (v_in and v_out)
-            #P_in = (C1_sta + C2_sta)*R_gas*T_gas
-            if self._const_v:
-                v_in = self._Q_in/epsi/self._A
-            else:
-                v_in = max(self._Cv_in*(self._P_in - P_ov[0]/1E5), 0 )  # pressure in bar           
-            v_out = max(self._Cv_out*(P_ov[-1]/1E5 - self._P_out), 0 )  # pressure in bar
-            
-            D_dis = self._D_disp
-            h = self._h
-            # Gas phase
-            dCdt = []
-            for ii in range(n_comp):
-                dCdt_tmp = -v*dC[ii] -C[ii]*dv + D_dis[ii]*ddC[ii] - (1-epsi)/epsi*rho_s*dqdt[ii]
-                #dCdt_tmp[0] = +(v_in*C_sta[ii] - v[1]*C[ii][0])/h - (1-epsi)/epsi*rho_s*dqdt[ii][0]
-                #dCdt_tmp[-1]= +(v[-1]*C[ii][-2]- v_out*C[ii][-1])/h - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
-                #dCdt_tmp[0] = v_in*(C_sta[ii]-C[ii][0])/h- (1-epsi)/epsi*rho_s*dqdt[ii][0]
-                #dCdt_tmp[-1]= +(v_out+v[-1])/2*(C[ii][-2]- C[ii][-1])/h - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
-                dCdt_tmp[0] = (v_in*C_sta[ii]-v[0]*C[ii][0])/h- (1-epsi)/epsi*rho_s*dqdt[ii][0]
-                dCdt_tmp[-1]= +(v[-2]*C[ii][-2]- v_out*C[ii][-1])/h - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
-###################################################3
-#                dv0 = (v[0] - v_in)/h
-#                dC0 = (C[ii][0] - C_sta[ii])/h
-#
-#                dvL = (v_out-v[-2])/h
-#                dCL = (C[ii][-1] - C[ii][-2])/h
-#                dCdt_tmp[0] = -v[0]*dC0 - C[ii][0]*dv0 - (1-epsi)/epsi*rho_s*dqdt[ii][0]
-#                dCdt_tmp[-1]= -v_out*dCL-C[ii][-1]*dvL - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
-###################################################3
-
-                dCdt.append(dCdt_tmp)
- 
-            dydt_tmp = dCdt+dqdt
-            dydt = np.concatenate(dydt_tmp)
-            daadt = U_cut.T@dydt
-            return daadt
-        
-        C_init = []
-        q_init = []
-        for ii in range(n_comp):
-            C_tmp = self._y_init[ii]*self._P_init*1E5/R_gas/self._Tg_init
-            C_init.append(C_tmp)
-            q_tmp = self._q_init[ii]
-            q_init.append(q_tmp)
- 
-        tic = time.time()/60
-        if self._required['Flow direction'] == 'Backward':
-            for ii in range(n_comp):
-                C_init[ii] = self._A_flip@C_init[ii]
-                q_init[ii] = self._A_flip@q_init[ii]
-        
-        y0_tmp = C_init + q_init
-        y0 = np.concatenate(y0_tmp)
-        
-        # Change the basis (coordinate)
-        aa0 = U_cut.T@y0
-
-        #RUN
-        aa_result = odeint(massmomebal,aa0,t_dom,)
-        
-        # Rolling back to Original coordinate
-        y_result = aa_result@U_cut.T
-
-        if self._required['Flow direction'] == 'Backward':
-            y_tmp = []
-            for ii in range(n_comp*2):
-                mat_tmp = y_result[:, ii*N : (ii+1)*N]
-                y_tmp.append(mat_tmp@self._A_flip)
-            y_flip = np.concatenate(y_tmp, axis = 1)
-            y_result = y_flip
-        self._y = y_result
-        self._t = t_dom
-        toc = time.time()/60 - tic
-        self._CPU_min = toc
-        self._Tg_res = np.ones([len(self._t), 1])@np.reshape(self._Tg_init,[1,-1])
-
-        if CPUtime_print:
-            print('Simulation of this step is completed.')
-            print('This took {0:9.3f} mins to run. \n'.format(toc))       
-        return y_result, self._z, t_dom
-
-
-
-
-
 ## Run mass & momentum & energy balance equations
+
     def run_mamoen_alt(self, t_max, n_sec = 5, CPUtime_print = False):
         t_max_int = np.int32(np.floor(t_max))
         self._n_sec = n_sec
@@ -943,7 +485,7 @@ class column:
                 P_part.append(C[ii]*R_gas*Tg/1E5) # in bar
                 C_ov = C_ov + C[ii]
                 P_ov = P_ov + C[ii]*R_gas*Tg
-                Mu = Mu + C[ii]*self._mu[ii]
+                Mu = C[ii]*self._mu[ii]
             Mu = Mu/C_ov
 
             # Ergun equation
@@ -974,10 +516,8 @@ class column:
             for ii in range(n_comp):
                 dCdt_tmp = -v*dC[ii] -C[ii]*dv + D_dis[ii]*ddC[ii] - (1-epsi)/epsi*rho_s*dqdt[ii]
                 #dCdt_tmp[0] = +(v_in*C_sta[ii] - v[1]*C[ii][0])/h - (1-epsi)/epsi*rho_s*dqdt[ii][0]    
-                #dCdt_tmp[0] = +v_in*(C_sta[ii] - C[ii][0])/h - (1-epsi)/epsi*rho_s*dqdt[ii][0]
-                #dCdt_tmp[-1]= +(v_out+v[-1])/2*(C[ii][-2]- C[ii][-1])/h - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
-                dCdt_tmp[0] = (v_in*C_sta[ii]-v[0]*C[ii][0])/h- (1-epsi)/epsi*rho_s*dqdt[ii][0]
-                dCdt_tmp[-1]= +(v[-2]*C[ii][-2]- v_out*C[ii][-1])/h - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
+                dCdt_tmp[0] = +v_in*(C_sta[ii] - C[ii][0])/h - (1-epsi)/epsi*rho_s*dqdt[ii][0]
+                dCdt_tmp[-1]= +(v_out+v[-1])/2*(C[ii][-2]- C[ii][-1])/h - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
                 dCdt.append(dCdt_tmp)
             # Temperature (gas)
             Cov_Cpg = np.zeros(N) # Heat capacity (overall) J/K/m^3
@@ -1083,7 +623,7 @@ class column:
             C_sta.append(self._y_in[ii]*self._P_in/R_gas/self._T_in*1E5)
             Cov_Cpg_in = Cov_Cpg_in + Cpg[ii]*C_sta[ii]
         
-        def massmomeenerbal(y, t):
+        def massmomeenerbal(y,t):
             C = []
             q = []
             for ii in range(n_comp):
@@ -1114,9 +654,8 @@ class column:
                 P_part.append(C[ii]*R_gas*Tg/1E5) # in bar
                 C_ov = C_ov + C[ii]
                 P_ov = P_ov + C[ii]*R_gas*Tg
-                Mu = Mu + C[ii]*self._mu[ii]
+                Mu = C[ii]*self._mu[ii]
             Mu = Mu/C_ov
-             
 
             # Ergun equation
             v,dv = Ergun(C,Tg,self._M_m,Mu,self._D_p,epsi,
@@ -1139,27 +678,15 @@ class column:
                 v_in = self._Q_in/epsi/self._A
             else:
                 v_in = max(self._Cv_in*(self._P_in - P_ov[0]/1E5), 0 )  # pressure in bar           
-                v_in = self._Cv_in*(self._P_in - P_ov[0]/1E5)  # pressure in bar           
             v_out = max(self._Cv_out*(P_ov[-1]/1E5 - self._P_out), 0 )  # pressure in bar
             
             # Gas phase concentration
             dCdt = []
             for ii in range(n_comp):
                 dCdt_tmp = -v*dC[ii] -C[ii]*dv + D_dis[ii]*ddC[ii] - (1-epsi)/epsi*rho_s*dqdt[ii]
-                #dCdt_tmp[0] = +(v_in*C_sta[ii] - v[1]*C[ii][0])/h - (1-epsi)/epsi*rho_s*dqdt[ii][0]    
+                dCdt_tmp[0] = +(v_in*C_sta[ii] - v[1]*C[ii][0])/h - (1-epsi)/epsi*rho_s*dqdt[ii][0]    
                 #dCdt_tmp[0] = +(v_in*C_sta[ii] - v[1]*C[ii][0])/h - (1-epsi)/epsi*rho_s*dqdt[ii][0]
-                #dCdt_tmp[-1]= +(v[-1]*C[ii][-2]- v_out*C[ii][-1])/h - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
-                dCdt_tmp[0] = (v_in*C_sta[ii]-v[0]*C[ii][0])/h- (1-epsi)/epsi*rho_s*dqdt[ii][0]
-                dCdt_tmp[-1]= +(v[-2]*C[ii][-2]- v_out*C[ii][-1])/h - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
-###################################################3
-                dv0 = (v[0] - v_in)/h
-                dC0 = (C[ii][0] - C_sta[ii])/h
-
-                dvL = (v_out-v[-2])/h
-                dCL = (C[ii][-1] - C[ii][-2])/h
-                dCdt_tmp[0] = -v[0]*dC0 - C[ii][0]*dv0 - (1-epsi)/epsi*rho_s*dqdt[ii][0]
-                dCdt_tmp[-1]= -v_out*dCL-C[ii][-1]*dvL - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
-###################################################3
+                dCdt_tmp[-1]= +(v[-1]*C[ii][-2]- v_out*C[ii][-1])/h - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
                 dCdt.append(dCdt_tmp)
             # Temperature (gas)
             Cov_Cpg = np.zeros(N) # Heat capacity (overall) J/K/m^3
@@ -1172,10 +699,10 @@ class column:
                 dTgdt = dTgdt + h_ambi*4/epsi/D_col*(T_ambi - Tg)/Cov_Cpg
 
             dTgdt[0] = h_heat*a_surf/epsi*(Ts[0] - Tg[0])/Cov_Cpg[0]
-            dTgdt[0] = dTgdt[0] + (v_in*self._T_in*Cov_Cpg_in/Cov_Cpg[0] - v[0]*Tg[0])/h
+            dTgdt[0] = dTgdt[0] + (v_in*self._T_in*Cov_Cpg_in/Cov_Cpg[0] - v[1]*Tg[0])/h
             dTgdt[-1] = h_heat*a_surf/epsi*(Ts[-1] - Tg[-1])/Cov_Cpg[-1]
             #dTgdt[-1] = dTgdt[-1] + (v[-1]*Tg[-2]*Cov_Cpg[-2]/Cov_Cpg[-1] - v_out*Tg[-1])/h
-            dTgdt[-1] = dTgdt[-1] + (v[-2]*Tg[-2]*Cov_Cpg[-2]/Cov_Cpg[-1] - v_out*Tg[-1])/h
+            dTgdt[-1] = dTgdt[-1] + (v[-1]*Tg[-2]*Cov_Cpg[-2]/Cov_Cpg[-1] - v_out*Tg[-1])/h
             for ii in range(n_comp):
                 dTgdt[0] = dTgdt[0] - Tg[0]*Cpg[ii]*dCdt[ii][0]/Cov_Cpg[0]
                 dTgdt[-1] = dTgdt[-1] - Tg[-1]*Cpg[ii]*dCdt[ii][-1]/Cov_Cpg[-1]
@@ -1206,9 +733,7 @@ class column:
         y0 = np.concatenate(y0_tmp)
         
         #RUN
-        y_result = odeint(massmomeenerbal,y0, t_dom,)
-        #y_ivp = solve_ivp(massmomeenerbal,t_dom, y0,method = 'BDF')
-        #y_result = y_ivp.y
+        y_result = odeint(massmomeenerbal,y0,t_dom,)
         C_sum = 0
         for ii in range(n_comp):
             C_sum = C_sum + y_result[-1,ii*N+2]
@@ -1220,248 +745,8 @@ class column:
             if CPUtime_print:
                 print('Simulation of this step is completed.')
                 print('This took {0:9.3f} mins to run. \n'.format(toc))
-            return y_result, self._z, t_dom
+            return y_result
         
-        if self._required['Flow direction'] == 'Backward':
-            y_tmp = []
-            for ii in range(n_comp*2 + 2):
-                mat_tmp = y_result[:, ii*N : (ii+1)*N]
-                y_tmp.append(mat_tmp@self._A_flip)
-            y_flip = np.concatenate(y_tmp, axis = 1)
-            y_result = y_flip
-        self._y = y_result
-        self._t = t_dom
-        toc = time.time()/60 - tic
-        self._CPU_min = toc
-        self._Tg_res = y_result[:,n_comp*2*N : n_comp*2*N+N]
-        if CPUtime_print:
-            print('Simulation of this step is completed.')
-            print('This took {0:9.3f} mins to run. \n'.format(toc))       
-        return y_result, self._z, t_dom
-
-    def find_basis(self, show_graph = False, show_n = 20):
-        try:
-            self._y
-        except:
-            print("You have to run the simulation, first!")
-            return
-        U, Sig, Vt = np.linalg.svd(self._y.T)
-        self.is_BASIS = True
-        self._U_basis = U
-        if show_graph:
-            if show_n == -1:
-                fig = plt.figure()
-                plt.bar(np.arange(1,len(U)), 
-                         Sig,
-                         color = 'k')
-                plt.xlabel("Principle components")
-                plt.ylabel("Singular value")
-            else:
-                fig = plt.figure()
-                plt.bar(np.arange(1,show_n+1), 
-                        Sig[:show_n],
-                        color = 'k')
-                plt.xlabel("Principle components")
-                plt.ylabel("Singular value")
-            return U, Sig, Vt, fig
-        
-        return U, Sig, Vt
-        
-
-    def run_mamoen_POD(self, t_max, n_sec = 5, N_basis = 20, U_basis = None, CPUtime_print = False):
-        if (type(None)==type(U_basis)):
-            if self.is_BASIS:
-                U_basis = self._U_basis
-            else:
-                print("Please use 'find_basis' first to find the basis!")
-                return None
-        elif (type(U_basis) == type(np.array([1,2,3,]))):
-            if len(U_basis) <= 2:
-                if self.is_BASIS:
-                    U_basis = self._U_basis
-                else:
-                    print("Please use 'find_basis' first to find the basis!")
-                    return None
-        U_cut = U_basis[:,:N_basis]
-        t_max_int = np.int32(np.floor(t_max))
-        self._n_sec = n_sec
-        n_t = t_max_int*n_sec+ 1
-        n_comp = self._n_comp
-        
-        t_dom = np.linspace(0,t_max_int, n_t)
-        if t_max_int < t_max:
-            t_dom = np.concatenate((t_dom, [t_max]))
-        
-        N = self._N
-        h = self._h
-        epsi = self._epsi
-        a_surf = self._a_surf
-
-        # Mass
-        D_dis = self._D_disp
-        k_mass = self._k_mtc
-
-        # Heat
-        dH = self._dH
-        Cpg = self._Cp_g
-        Cps = self._Cp_s
-
-        h_heat = self._h_heat
-        h_ambi = self._h_ambi
-        T_ambi = self._T_ambi
-
-        # other parmeters
-        rho_s = self._rho_s
-        D_col = np.sqrt(self._A/np.pi)*2
-
-        C_sta = []
-        Cov_Cpg_in = 0
-        for ii in range(n_comp):
-            C_sta.append(self._y_in[ii]*self._P_in/R_gas/self._T_in*1E5)
-            Cov_Cpg_in = Cov_Cpg_in + Cpg[ii]*C_sta[ii]
-        
-        def massmomeenerbal(aa, t):
-            y = U_cut@aa
-            C = []
-            q = []
-            for ii in range(n_comp):
-                C.append(y[ii*N:(ii+1)*N])
-                q.append(y[n_comp*N + ii*N : n_comp*N + (ii+1)*N])
-            Tg = y[2*n_comp*N : 2*n_comp*N + N ]
-            Ts = y[2*n_comp*N + N : 2*n_comp*N + 2*N ]
- 
-            # Derivatives
-            dC = []
-            ddC = []
-            C_ov = np.zeros(N)
-            P_ov = np.zeros(N)
-            P_part = []
-            Mu = np.zeros(N)
-            #T = self._Tg_init
-            # Temperature gradient:
-            dTg = self._d@Tg
-            ddTs = self._dd@Ts
-
-            # Concentration gradient
-            # Pressure (overall&partial)
-            # Viscosity
-            for ii in range(n_comp):
-                dC.append(self._d@C[ii])
-                ddC.append(self._dd@C[ii])
-                P_part.append(C[ii]*R_gas*Tg/1E5) # in bar
-                C_ov = C_ov + C[ii]
-                P_ov = P_ov + C[ii]*R_gas*Tg
-                Mu = Mu + C[ii]*self._mu[ii]
-            Mu = Mu/C_ov
-             
-
-            # Ergun equation
-            v,dv = Ergun(C,Tg,self._M_m,Mu,self._D_p,epsi,
-                         self._d,self._dd,self._d_fo, self._N)
-            
-            # Solid phase concentration
-            qsta = self._iso(P_part, Tg) # partial pressure in bar
-            dqdt = []
-            if self._order_MTC == 1:
-                for ii in range(n_comp):
-                    dqdt_tmp = self._k_mtc[ii]*(qsta[ii] - q[ii])*self._a_surf
-                    dqdt.append(dqdt_tmp)
-            elif self._order_MTC == 2:
-                for ii in range(n_comp):
-                    dqdt_tmp = self._k_mtc[ii][0]*(qsta[ii] - q[ii])*self._a_surf + self._k_mtc[ii][1]*(qsta[ii] - q[ii])**2*self._a_surf
-                    dqdt.append(dqdt_tmp)
-            # Valve equations (v_in and v_out)
-            #P_in = (C1_sta + C2_sta)*R_gas*T_gas
-            if self._const_v:
-                v_in = self._Q_in/epsi/self._A
-            else:
-                v_in = max(self._Cv_in*(self._P_in - P_ov[0]/1E5), 0 )  # pressure in bar           
-                v_in = self._Cv_in*(self._P_in - P_ov[0]/1E5)  # pressure in bar           
-            v_out = max(self._Cv_out*(P_ov[-1]/1E5 - self._P_out), 0 )  # pressure in bar
-            
-            # Gas phase concentration
-            dCdt = []
-            for ii in range(n_comp):
-                dCdt_tmp = -v*dC[ii] -C[ii]*dv + D_dis[ii]*ddC[ii] - (1-epsi)/epsi*rho_s*dqdt[ii]
-                #dCdt_tmp[0] = +(v_in*C_sta[ii] - v[1]*C[ii][0])/h - (1-epsi)/epsi*rho_s*dqdt[ii][0]    
-                #dCdt_tmp[0] = +(v_in*C_sta[ii] - v[1]*C[ii][0])/h - (1-epsi)/epsi*rho_s*dqdt[ii][0]
-                #dCdt_tmp[-1]= +(v[-1]*C[ii][-2]- v_out*C[ii][-1])/h - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
-                dCdt_tmp[0] = (v_in*C_sta[ii]-v[0]*C[ii][0])/h- (1-epsi)/epsi*rho_s*dqdt[ii][0]
-                dCdt_tmp[-1]= +(v[-2]*C[ii][-2]- v_out*C[ii][-1])/h - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
-###################################################3
-                dv0 = (v[0] - v_in)/h
-                dC0 = (C[ii][0] - C_sta[ii])/h
-
-                dvL = (v_out-v[-2])/h
-                dCL = (C[ii][-1] - C[ii][-2])/h
-                dCdt_tmp[0] = -v[0]*dC0 - C[ii][0]*dv0 - (1-epsi)/epsi*rho_s*dqdt[ii][0]
-                dCdt_tmp[-1]= -v_out*dCL-C[ii][-1]*dvL - (1-epsi)/epsi*rho_s*dqdt[ii][-1]
-###################################################3
-                dCdt.append(dCdt_tmp)
-            # Temperature (gas)
-            Cov_Cpg = np.zeros(N) # Heat capacity (overall) J/K/m^3
-            for ii in range(n_comp):
-                Cov_Cpg = Cov_Cpg + Cpg[ii]*C[ii]
-            dTgdt = -v*dTg + h_heat*a_surf/epsi*(Ts - Tg)/Cov_Cpg
-            for ii in range(n_comp):
-                dTgdt = dTgdt - Cpg[ii]*Tg*D_dis[ii]*ddC[ii]/Cov_Cpg
-                dTgdt = dTgdt + Tg*self._rho_s*(1-epsi)/epsi*Cpg[ii]*dqdt[ii]/Cov_Cpg
-                dTgdt = dTgdt + h_ambi*4/epsi/D_col*(T_ambi - Tg)/Cov_Cpg
-
-            dTgdt[0] = h_heat*a_surf/epsi*(Ts[0] - Tg[0])/Cov_Cpg[0]
-            dTgdt[0] = dTgdt[0] + (v_in*self._T_in*Cov_Cpg_in/Cov_Cpg[0] - v[0]*Tg[0])/h
-            dTgdt[-1] = h_heat*a_surf/epsi*(Ts[-1] - Tg[-1])/Cov_Cpg[-1]
-            #dTgdt[-1] = dTgdt[-1] + (v[-1]*Tg[-2]*Cov_Cpg[-2]/Cov_Cpg[-1] - v_out*Tg[-1])/h
-            dTgdt[-1] = dTgdt[-1] + (v[-2]*Tg[-2]*Cov_Cpg[-2]/Cov_Cpg[-1] - v_out*Tg[-1])/h
-            for ii in range(n_comp):
-                dTgdt[0] = dTgdt[0] - Tg[0]*Cpg[ii]*dCdt[ii][0]/Cov_Cpg[0]
-                dTgdt[-1] = dTgdt[-1] - Tg[-1]*Cpg[ii]*dCdt[ii][-1]/Cov_Cpg[-1]
-            dTsdt = (self._k_cond*ddTs+ h_heat*a_surf/(1-epsi)*(Tg-Ts))/self._rho_s/Cps
-            for ii in range(n_comp):
-                dTsdt = dTsdt + abs(dH[ii])*dqdt[ii]/Cps
-            
-            dydt_tmp = dCdt+dqdt+[dTgdt] + [dTsdt]
-            dydt = np.concatenate(dydt_tmp)
-            daadt = U_cut.T@dydt
-            return daadt
-        
-        C_init = []
-        q_init = []
-        for ii in range(n_comp):
-            C_tmp = self._y_init[ii]*self._P_init*1E5/R_gas/self._Tg_init
-            C_init.append(C_tmp)
-            q_tmp = self._q_init[ii]
-            q_init.append(q_tmp)
- 
-        tic = time.time()/60
-        if self._required['Flow direction'] == 'Backward':
-            for ii in range(n_comp):
-                C_init[ii] = self._A_flip@C_init[ii]
-                q_init[ii] = self._A_flip@q_init[ii]
-            y0_tmp = C_init + q_init + [self._A_flip@self._Tg_init] + [self._A_flip@self._Ts_init]
-        else:
-            y0_tmp = C_init + q_init + [self._Tg_init] + [self._Ts_init]
-        y0 = np.concatenate(y0_tmp)
-        aa0 = U_cut.T@y0
-        #RUN
-        a_result = odeint(massmomeenerbal, aa0, t_dom,)
-        y_result = a_result@U_cut.T
-        #y_ivp = solve_ivp(massmomeenerbal,t_dom, y0,method = 'BDF')
-        #y_result = y_ivp.y
-        C_sum = 0
-        '''
-        for ii in range(n_comp):
-            C_sum = C_sum + y_result[-1,ii*N+2]
-        if C_sum  < 0.1:
-            y_result, _,_  = self.run_mamoen_alt(t_max,n_sec)
-            toc = time.time()/60 - tic
-            self._CPU_min = toc
-            self._Tg_res = y_result[:,n_comp*2*N : n_comp*2*N+N]
-            if CPUtime_print:
-                print('Simulation of this step is completed.')
-                print('This took {0:9.3f} mins to run. \n'.format(toc))
-            return y_result, self._z, t_dom
-        '''
         if self._required['Flow direction'] == 'Backward':
             y_tmp = []
             for ii in range(n_comp*2 + 2):
@@ -1727,548 +1012,15 @@ class column:
         if file_name != None:
             fig.savefig(file_name, bbox_inches='tight')
         return fig, ax    
-    ## Copy the column
+    ## Copy the         
     def copy(self):
         import copy
         self_new = copy.deepcopy(self)
         return self_new
-    
-    ##### Linear velocity assumptions #####
-    ## Run mass balance only with linear velocity assumption ##
-    def run_ma_linvel(self, t_max, n_sec = 5, CPUtime_print = False):
-        # t domain
-        tic = time.time()/60 # in minute
-        t_max_int = np.int32(np.floor(t_max))
-        self._n_sec = n_sec
-        n_t = t_max_int*n_sec+ 1
-        
-        t_dom = np.linspace(0,t_max_int, n_t)
-        if t_max_int < t_max:
-            t_dom = np.concatenate((t_dom, [t_max]))
-        
-        # z axis
-        N = self._N
-        h = self._h
-        L = self._L
-        z = np.linspace(0,L,N)
-        # Geometry
-        A_cros = self._A
-        V_tot = L*self._A
-        epsi = self._epsi
-        dp = self._D_p
-        a_surf = self._a_surf
-        rho_s = self._rho_s
-        # n_comp
-        n_comp = self._n_comp
-        # Initial Conditions
-        y_av = []
-        mu_av = 0
-        for ii in range(n_comp):
-            y_av_tmp = np.mean(self._y_init[ii])
-            mu_av = mu_av + y_av_tmp*self._mu[ii]
-            y_av.append(y_av_tmp)
-        # Boundary (feed) conditions
-        P_feed = self._P_in
-        P_out = self._P_out
-        T_feed = self._T_in
-        y_feed = self._y_in      
-        # Three diff cases
-        # Case 1: Flowing through (both open valve)
-        if (self._Cv_in > 1E-10) and (self._Cv_out > 1E-10):
-            ########### IF "BACKWARD" ???? ########
-            # Velocity (constant)
-            u_feed = self._Q_in/epsi/self._A
-            P_L = P_out + self._Q_in/self._Cv_out # in bar # Note Cv_out in (m^3/s/bar)
-            Rgas = 8.3145    # J/mol/K
-            # Pressure profiles
-            P_av = (P_out+P_feed)/2     # in bar
-            DPDz_term1 = -1.75*P_av*1E5/R_gas/T_feed*(1-epsi)/epsi*u_feed**2
-            DPDz_term2 = -150*mu_av/dp**2*(1-epsi)**2/epsi**2*u_feed
-            DPDz = DPDz_term1 + DPDz_term2          # in (Pa/m)
-            P_0 = P_L + DPDz*1E-5                   # in bar
-            P_in = P_0 + self._Q_in/self._Cv_in     # in bar # in bar # Note Cv_out in (m^3/s/bar)
-            # P profile once again
-            P_av = (P_out+P_in)/2
-            DPDz_term1 = -1.75*P_av*1E5/R_gas/T_feed*(1-epsi)/epsi*u_feed**2
-            DPDz_term2 = -150*mu_av/dp**2*(1-epsi)**2/epsi**2*u_feed
-            DPDz = DPDz_term1 + DPDz_term2 # in (Pa/m)
-            P_0 = P_L + DPDz*1E-5
-            P_in = P_0 + self._Q_in/self._Cv_in
-            P = DPDz*1E-5*z + P_0   # bar
-            # C profile
-            C = P*1E5/R_gas/T_feed   # mol/m^3
-            # Mass transfer ...
-            k_mtc = self._k_mtc
-            D_AB = self._D_disp
-            a_surf = self._a_surf
-
-            def massbal_linvel(y,t):
-                y_comp = []
-                P_part = []
-                dy_comp = []
-                ddy_comp = []
-                for ii in range(n_comp-1):
-                    y_tmp = np.array(y[ii*N:(ii+1)*N])
-                    y_tmp[y_tmp<1E-6] = 0
-                    dy_tmp = self._d@y_tmp
-                    ddy_tmp =self._dd@y_tmp
-                    P_part_tmp = y_tmp*P
-                    #y_tmp[y_tmp<1E-6] = 0
-                    y_comp.append(y_tmp)
-                    P_part.append(P_part_tmp)
-                    dy_comp.append(dy_tmp)
-                    ddy_comp.append(ddy_tmp)
-                y_rest = 1-np.sum(y_comp, 0)
-                P_part.append(P*y_rest)
-                #print('Shape of P_part[0]',P_part[0].shape)
-                q = []
-                for ii in range(n_comp-1, 2*n_comp-1):
-                    q.append(y[ii*N:(ii+1)*N])
-                # Solid uptake component
-                dqdt = []
-                qstar = self._iso(P_part,T_feed)
-                for ii in range(n_comp):
-                    dqdt_tmp = k_mtc[ii]*a_surf*(qstar[ii] - q[ii])
-                    dqdt.append(dqdt_tmp)
-                # Solid uptake total
-                Sig_dqdt = np.sum(dqdt, 0)
-                #print(Sig_dqdt)
-                dy_compdt = []
-                for ii in range(n_comp-1):
-                    term1 = -u_feed*dy_comp[ii]
-                    term2 = D_AB[ii]*0 # How to calculate d(yC)dz
-                    term3 = -rho_s*(1-epsi)/epsi*dqdt[ii]
-                    term4 = 0
-                    term5 = +y_comp[ii]*rho_s*Sig_dqdt*(1-epsi)/epsi
-                    
-                    #term1[0] = 0
-                    term1[0] = u_feed*self._d[1,1]*(y_feed[ii]-y_comp[ii][0])
-                    #term5[0] = 0
-                    #term1[-1] = -u_feed*d[1,1]*C[-1]*(y_comp[ii][-2]-y_comp[ii][-1])
-                    #term3[-1] = 0
-                    #term5[-1] = 0
-
-                    #dydt_tmp = term1+(term2 + term3+ term4 + term5)/C
-                    dydt_tmp = term1 + term3/C + term5/C
-                    #dydt_tmp[0] = 0
-                    #dydt_tmp[N-1] = 0 
-                    #ind_both = ((y_comp[ii]<1E-6) + (dydt_tmp < 0))>1.5
-                    #dydt_tmp[ind_both] = 0 
-                    dy_compdt.append(dydt_tmp)
-                dydt = []
-                for yy in dy_compdt:
-                    dydt.append(yy)
-                    #print(yy.shape)
-                for qq in dqdt:
-                    dydt.append(qq)
-                    #print(qq.shape)
-                dydt_arr = np.concatenate(dydt)
-                
-                return dydt_arr
-            
-            # Initial value again
-            y0 = np.zeros(N*(n_comp*2-1))
-            for ii in range(n_comp-1):
-                y0[ii*N : (ii+1)*N] = self._y_init[ii]
-                y0[(n_comp-1)*N+ii*N:(n_comp-1)*N+(ii+1)*N] = self._q_init[ii]
-            y0[2*(n_comp-1)*N:2*(n_comp-1)*N+N] = self._q_init[-1]
-            
-            # Backward flow case
-            if self._required['Flow direction'] == 'Backward':
-                y0_tmp = []
-                for ii in range(2*n_comp-1):
-                    mat_y0_pre_tmp = y0[ii*N:(ii+1)*N]
-                    mat_y0_rev_tmp = self._A_flip@mat_y0_pre_tmp
-                    y0_tmp.append(mat_y0_rev_tmp)
-                y0_rev = np.concatenate(y0_tmp)
-                y0 = y0_rev
-                
-            # Solve ode
-            y_result = odeint(massbal_linvel, y0, t_dom,)
-            
-            # BACKWARD FLOW !! #
-            # Flipped one for backward flow
-            if self._required['Flow direction'] == 'Backward':
-                y_tmp = []
-                q_tmp = []
-                for ii in range(n_comp-1):
-                    mat_y_tmp = y_result[:, ii*N : (ii+1)*N]
-                    mat_q_tmp = y_result[:, (n_comp-1+ii)*N : (n_comp+ii)*N]
-                    y_tmp.append(mat_y_tmp@self._A_flip)
-                    q_tmp.append(mat_q_tmp@self._A_flip)
-                mat_q_tmp = y_result[:, (2*n_comp-2)*N:(2*n_comp-1)*N]
-                q_tmp.append(mat_q_tmp@self._A_flip)
-                y_flip = np.concatenate(y_tmp+q_tmp, axis = 1)
-                y_result = y_flip
-            
-            # Assign the results (packaging the results)
-            C_tmp = []
-            q_tmp = []
-            y_tmp = []
-            mat_y_rest = np.zeros([len(t_dom), N])
-            for ii in range(n_comp-1):
-                mat_y_tmp = y_result[:, ii*N:(ii+1)*N]
-                mat_q_tmp = y_result[:, (n_comp-1+ii)*N : (n_comp+ii)*N]
-                mat_C_tmp = mat_y_tmp@np.diag(C)
-                
-                C_tmp.append(mat_C_tmp)
-                q_tmp.append(mat_q_tmp)
-                y_tmp.append(mat_y_tmp)
-                mat_y_rest = mat_y_rest + mat_y_tmp
-
-            C_tmp.append((1- mat_y_rest)@np.diag(C))
-            q_tmp.append(y_result[:, (2*n_comp-2)*N: (2*n_comp-1)*N])
-            
-            self._y_fra = y_tmp
-
-            Tg_tmp = T_feed*np.ones([len(t_dom), N])
-            Ts_tmp = T_feed*np.ones([len(t_dom), N])
-            y_result = np.concatenate(C_tmp + q_tmp + [Tg_tmp, Ts_tmp], axis=1)
-            self._y = y_result
-            self._t = t_dom
-
-            toc = time.time()/60 - tic
-            self._CPU_min = toc
-            if CPUtime_print:
-                print('Simulation of this step is completed.')
-                print('This took {0:9.3f} mins to run. \n'.format(toc))
-            
-            return y_result, self._z, t_dom
-
-        # Pressurization (open inlet only)
-        elif (self._Cv_in > 1E-10) and (self._Cv_out < 1E-10): 
-            # Initial Pressure and initial overal concentration
-            Rgas = 8.3145   # J/mol/K
-            P_av0 = np.mean(self._P_init)
-            C_av0 = P_av0*1E5/R_gas/T_feed   # mol/m^3
-            # Mass transfer
-            k_mtc = self._k_mtc
-            D_AB = self._D_disp
-            a_surf = self._a_surf
-
-            def massbal_linvel(y,t):
-                y_comp = []
-                P_part = []
-                dy_comp = []
-                ddy_comp = []
-                C = y[(2*n_comp-1)*N]
-                P_av = C*Rgas*T_feed/1E5   # mol/m^3
-                Q_feed = self._Cv_in*(P_feed - P_av)
-                u_max = Q_feed/self._A/epsi
-                u_vel = u_max*(1-z/L)
-                if u_max > 0:
-                    F_feed = Q_feed*(P_feed/Rgas/T_feed)*1E5
-                else:
-                    F_feed = Q_feed*(P_av/Rgas/T_feed)*1E5
-                
-                #Q_feed = P_av0*
-                for ii in range(n_comp-1):
-                    y_tmp = np.array(y[ii*N:(ii+1)*N])
-                    y_tmp[y_tmp<1E-6] = 0
-                    dy_tmp = self._d@y_tmp
-                    ddy_tmp = self._dd@y_tmp
-                    P_part_tmp = y_tmp*P_av
-                    #y_tmp[y_tmp<1E-6] = 0
-                    y_comp.append(y_tmp)
-                    P_part.append(P_part_tmp)
-                    dy_comp.append(dy_tmp)
-                    ddy_comp.append(ddy_tmp)
-
-                y_rest = 1-np.sum(y_comp, 0)
-                P_part.append(P_av*y_rest)
-                #print('Shape of P_part[0]',P_part[0].shape)
-                q = []
-                for ii in range(n_comp-1, 2*n_comp-1):
-                    q.append(y[ii*N:(ii+1)*N])
-                # Solid uptake component
-                dqdt = []
-                qstar = self._iso(P_part,T_feed)
-                for ii in range(n_comp):
-                    dqdt_tmp = k_mtc[ii]*a_surf*(qstar[ii] - q[ii])
-                    dqdt.append(dqdt_tmp)
-                # Solid uptake total
-                Sig_dqdt = np.sum(dqdt, 0)
-                dqdt_av = np.sum(Sig_dqdt)/len(Sig_dqdt)
-                
-                # dCdt: 1st derv term of average overall gas concentration 
-                dCdt = 1/epsi/V_tot*F_feed -(1-epsi)/epsi*rho_s*dqdt_av
-                dy_compdt = []
-                for ii in range(n_comp-1):
-                    term1 = -u_vel*dy_comp[ii]
-                    term2 = D_AB[ii]*0 # How to calculate d(yC)dz
-                    term3 = -rho_s*(1-epsi)/epsi*dqdt[ii]
-                    term4 = 0
-                    term5 = +y_comp[ii]*rho_s*Sig_dqdt*(1-epsi)/epsi
-                    
-                    #term1[0] = 0
-                    term1[0] = u_vel[0]*self._d[1,1]*(y_feed[ii]-y_comp[ii][0])
-                    #term5[0] = 0
-                    #term1[-1] = -u_feed*d[1,1]*C[-1]*(y_comp[ii][-2]-y_comp[ii][-1])
-                    #term3[-1] = 0
-                    #term5[-1] = 0
-
-                    #dydt_tmp = term1+(term2 + term3+ term4 + term5)/C
-                    dydt_tmp = term1 + term3/C + term5/C
-                    #dydt_tmp[0] = 0
-                    #dydt_tmp[N-1] = 0 
-                    #ind_both = ((y_comp[ii]<1E-6) + (dydt_tmp < 0))>1.5
-                    #dydt_tmp[ind_both] = 0 
-                    dy_compdt.append(dydt_tmp) # dy_i/dt i = 1,2, ...
-
-                dydt = []
-                for yy in dy_compdt:
-                    dydt.append(yy)
-                    #print(yy.shape)
-                for qq in dqdt:
-                    dydt.append(qq)
-                    #print(qq.shape)
-                dydt.append([dCdt])
-                dydt_arr = np.concatenate(dydt)
-                
-                return dydt_arr
-            
-            # Initial value again
-            y0 = np.zeros(N*(n_comp*2-1)+1)
-            for ii in range(n_comp-1):
-                y0[ii*N : (ii+1)*N] = self._y_init[ii]
-                y0[(n_comp-1+ii)*N : (n_comp+ii)*N]= self._q_init[ii]
-            y0[2*(n_comp-1)*N : 2*(n_comp-1)*N+N] = self._q_init[-1]
-            y0[(2*n_comp-1)*N] = C_av0
-
-            # BACKWARD FLOW !! Flip initial conditions #
-            if self._required['Flow direction'] == 'Backward':
-                y0_tmp = []
-                for ii in range(2*n_comp-1):
-                    mat_y0_pre_tmp = y0[ii*N:(ii+1)*N]
-                    mat_y0_rev_tmp = self._A_flip@mat_y0_pre_tmp
-                    y0_tmp.append(mat_y0_rev_tmp)
-                y0_tmp.append([y0[-1]])
-                y0_rev = np.concatenate(y0_tmp)
-                y0 = y0_rev
-                
-            # Solve ode
-            y_result = odeint(massbal_linvel, y0, t_dom)
-
-            # BACKWARD FLOW !! Flip the results#
-            if self._required['Flow direction'] == 'Backward':
-                y_tmp = []
-                q_tmp = []
-                for ii in range(n_comp-1):
-                    mat_y_tmp = y_result[:, ii*N : (ii+1)*N]
-                    mat_q_tmp = y_result[:, (n_comp-1+ii)*N : (n_comp+ii)*N]
-                    y_tmp.append(mat_y_tmp@self._A_flip)
-                    q_tmp.append(mat_q_tmp@self._A_flip)
-                mat_q_tmp = y_result[:, (2*n_comp-2)*N:(2*n_comp-1)*N]
-                q_tmp.append(mat_q_tmp@self._A_flip)
-                y_flip = np.concatenate(y_tmp+q_tmp + [y_result[:,-1:]], axis = 1)
-                y_result = y_flip
-
-            C_t_dom = y_result[:, -1]
-            C_tmp = []
-            q_tmp = []
-            y_tmp = []
-            mat_y_rest = np.zeros([len(t_dom), N])
-            for ii in range(n_comp-1):
-                mat_y_tmp = y_result[:, ii*N:(ii+1)*N]
-                mat_q_tmp = y_result[:, (n_comp-1+ii)*N : (n_comp+ii)*N]
-                mat_C_tmp = np.diag(C_t_dom)@mat_y_tmp
-                
-                C_tmp.append(mat_C_tmp)
-                q_tmp.append(mat_q_tmp)
-                y_tmp.append(mat_y_tmp)
-                mat_y_rest = mat_y_rest + mat_y_tmp
-
-            C_tmp.append(np.diag(C_t_dom)@(1- mat_y_rest))
-            q_tmp.append(y_result[:, (2*n_comp-2)*N: (2*n_comp-1)*N])
-
-            self._y_fra = y_tmp
-
-            Tg_tmp = T_feed*np.ones([len(t_dom), N])
-            Ts_tmp = T_feed*np.ones([len(t_dom), N])
-            y_result = np.concatenate(C_tmp + q_tmp + [Tg_tmp, Ts_tmp], axis=1)
-            self._y = y_result
-            self._t = t_dom
-
-            toc = time.time()/60 - tic
-            self._CPU_min = toc
-            if CPUtime_print:
-                print('Simulation of this step is completed.')
-                print('This took {0:9.3f} mins to run. \n'.format(toc))
-
-            return y_result, self._z, t_dom
-        
-        # Depressurization (=Blowdown) (Open outlet only)
-        elif (self._Cv_in < 1E-10) and (self._Cv_out > 1E-10): 
-            # Initial Pressure and initial overal concentration
-            Rgas = 8.3145   # J/mol/K
-            P_av0 = np.mean(self._P_init)
-            C_av0 = P_av0*1E5/R_gas/T_feed   # mol/m^3
-            # Mass transfer
-            k_mtc = self._k_mtc
-            D_AB = self._D_disp
-            a_surf = self._a_surf
-
-            def massbal_linvel(y,t):
-                y_comp = []
-                P_part = []
-                dy_comp = []
-                ddy_comp = []
-                C = y[(2*n_comp-1)*N]
-                P_av = C*Rgas*T_feed/1E5   # mol/m^3
-                Q_feed = self._Cv_out*(P_av - P_out)
-                u_max = Q_feed/self._A/epsi
-                u_vel = u_max*z/L
-                if u_max > 0:
-                    F_feed = Q_feed*(P_av/Rgas/T_feed)*1E5
-                else:
-                    F_feed = Q_feed*(P_out/Rgas/T_feed)*1E5
-                
-                #Q_feed = P_av0*
-                for ii in range(n_comp-1):
-                    y_tmp = np.array(y[ii*N:(ii+1)*N])
-                    y_tmp[y_tmp<1E-6] = 0
-                    dy_tmp = self._d@y_tmp
-                    ddy_tmp = self._dd@y_tmp
-                    P_part_tmp = y_tmp*P_av
-                    #y_tmp[y_tmp<1E-6] = 0
-                    y_comp.append(y_tmp)
-                    P_part.append(P_part_tmp)
-                    dy_comp.append(dy_tmp)
-                    ddy_comp.append(ddy_tmp)
-
-                y_rest = 1-np.sum(y_comp, 0)
-                P_part.append(P_av*y_rest)
-                q = []
-                for ii in range(n_comp-1, 2*n_comp-1):
-                    q.append(y[ii*N:(ii+1)*N])
-                # Solid uptake component
-                dqdt = []
-                qstar = self._iso(P_part,T_feed)
-                for ii in range(n_comp):
-                    dqdt_tmp = k_mtc[ii]*a_surf*(qstar[ii] - q[ii])
-                    dqdt.append(dqdt_tmp)
-                # Solid uptake total
-                Sig_dqdt = np.sum(dqdt, 0)
-                dqdt_av = np.sum(Sig_dqdt)/len(Sig_dqdt)
-                
-                # dCdt: 1st derv term of average overall gas concentration 
-                dCdt = -1/epsi/V_tot*F_feed -(1-epsi)/epsi*rho_s*dqdt_av
-                dy_compdt = []
-                for ii in range(n_comp-1):
-                    term1 = -u_vel*dy_comp[ii]
-                    term2 = D_AB[ii]*0 # How to calculate d(yC)dz
-                    term3 = -rho_s*(1-epsi)/epsi*dqdt[ii]
-                    term4 = 0
-                    term5 = +y_comp[ii]*rho_s*Sig_dqdt*(1-epsi)/epsi
-                    
-                    term1[0] = 0
-                    # Because u_vel[0] = 0 ... 
-                    # [???] term1[0] = u_vel[0]*self._d[1,1]*(y_feed[ii]-y_comp[ii][0])
-
-                    #term5[0] = 0
-                    #term1[-1] = -u_feed*d[1,1]*C[-1]*(y_comp[ii][-2]-y_comp[ii][-1])
-                    #term3[-1] = 0
-                    #term5[-1] = 0
-
-                    #dydt_tmp = term1+(term2 + term3+ term4 + term5)/C
-                    dydt_tmp = term1 + term3/C + term5/C
-                    #dydt_tmp[0] = 0
-                    #dydt_tmp[N-1] = 0 
-                    #ind_both = ((y_comp[ii]<1E-6) + (dydt_tmp < 0))>1.5
-                    #dydt_tmp[ind_both] = 0 
-                    dy_compdt.append(dydt_tmp) # dy_i/dt i = 1,2, ...
-
-                dydt = []
-                for yy in dy_compdt:
-                    dydt.append(yy)
-                    #print(yy.shape)
-                for qq in dqdt:
-                    dydt.append(qq)
-                    #print(qq.shape)
-                dydt.append([dCdt])
-                dydt_arr = np.concatenate(dydt)
-                
-                return dydt_arr
-            
-            # Initial value again
-            y0 = np.zeros(N*(n_comp*2-1)+1)
-            for ii in range(n_comp-1):
-                y0[ii*N : (ii+1)*N] = self._y_init[ii]
-                y0[(n_comp-1+ii)*N : (n_comp+ii)*N]= self._q_init[ii]
-            y0[2*(n_comp-1)*N : 2*(n_comp-1)*N+N] = self._q_init[-1]
-            y0[(2*n_comp-1)*N] = C_av0
-            
-            # BACKWARD FLOW !! Flip initial conditions #
-            if self._required['Flow direction'] == 'Backward':
-                y0_tmp = []
-                for ii in range(2*n_comp-1):
-                    mat_y0_pre_tmp = y0[ii*N:(ii+1)*N]
-                    mat_y0_rev_tmp = self._A_flip@mat_y0_pre_tmp
-                    y0_tmp.append(mat_y0_rev_tmp)
-                y0_tmp.append([y0[-1]])
-                y0_rev = np.concatenate(y0_tmp)
-                y0 = y0_rev
-                
-            # Solve ode
-            y_result = odeint(massbal_linvel, y0, t_dom)
-
-            # BACKWARD FLOW !! Flip the results#
-            if self._required['Flow direction'] == 'Backward':
-                y_tmp = []
-                q_tmp = []
-                for ii in range(n_comp-1):
-                    mat_y_tmp = y_result[:, ii*N : (ii+1)*N]
-                    mat_q_tmp = y_result[:, (n_comp-1+ii)*N : (n_comp+ii)*N]
-                    y_tmp.append(mat_y_tmp@self._A_flip)
-                    q_tmp.append(mat_q_tmp@self._A_flip)
-                mat_q_tmp = y_result[:, (2*n_comp-2)*N:(2*n_comp-1)*N]
-                q_tmp.append(mat_q_tmp@self._A_flip)
-                y_flip = np.concatenate(y_tmp+q_tmp + [y_result[:,-1:]], axis = 1)
-                y_result = y_flip
-
-            C_t_dom = y_result[:, -1]
-            C_tmp = []
-            q_tmp = []
-            y_tmp = []
-            mat_y_rest = np.zeros([len(t_dom), N])
-            for ii in range(n_comp-1):
-                mat_y_tmp = y_result[:, ii*N:(ii+1)*N]
-                mat_q_tmp = y_result[:, (n_comp-1+ii)*N : (n_comp+ii)*N]
-                mat_C_tmp = np.diag(C_t_dom)@mat_y_tmp
-                
-                C_tmp.append(mat_C_tmp)
-                q_tmp.append(mat_q_tmp)
-                y_tmp.append(mat_y_tmp)
-                mat_y_rest = mat_y_rest + mat_y_tmp
-
-            C_tmp.append(np.diag(C_t_dom)@(1- mat_y_rest))
-            q_tmp.append(y_result[:, (2*n_comp-2)*N: (2*n_comp-1)*N])
-
-            self._y_fra = y_tmp
-
-            Tg_tmp = T_feed*np.ones([len(t_dom), N])
-            Ts_tmp = T_feed*np.ones([len(t_dom), N])
-            y_result = np.concatenate(C_tmp + q_tmp + [Tg_tmp, Ts_tmp], axis=1)
-            self._y = y_result
-            self._t = t_dom
-
-            toc = time.time()/60 - tic
-            self._CPU_min = toc
-            if CPUtime_print:
-                print('Simulation of this step is completed.')
-                print('This took {0:9.3f} mins to run. \n'.format(toc))
-
-            return y_result, self._z, t_dom
-            
-            
-        
-        
-
-        
 
 
 
-#### P equalization ??? ####
+
 def step_P_eq_alt1(column1, column2, t_max,
 n_sec=5, Cv_btw=0.1, valve_select = [1,1], CPUtime_print = False):
     tic = time.time() / 60 # in minute
@@ -2320,7 +1072,7 @@ n_sec=5, Cv_btw=0.1, valve_select = [1,1], CPUtime_print = False):
     C_sta1 = np.zeros(n_comp)
     for ii in range(n_comp):
         C_sta1[ii] = c1_tmp._y_init[ii][0]*P_mean/R_gas/T_mean*1E5
-    #print(C_sta1)
+    print(C_sta1)
 
     t_dom = np.linspace(0,t_max_int, n_t)
     column1._n_sec = n_sec
@@ -3027,6 +1779,9 @@ n_sec=5, Cv_btw=0.1, valve_select = [1,1], CPUtime_print = False):
         column2._Tg_res = y_res2[:,n_comp*2*N2 : n_comp*2*N2+N2]
         return [[y_res1,column1._z, t_dom], [y_res2,column2._z, t_dom]]
 
+
+
+
 def step_P_eq(column1, column2, t_max,
 n_sec=5, Cv_btw=0.1, valve_select = [1,1], CPUtime_print = False):
     tic = time.time() / 60 # in minute
@@ -3376,93 +2131,13 @@ n_sec=5, Cv_btw=0.1, valve_select = [1,1], CPUtime_print = False):
         column1._Tg_res = y_res1[:,n_comp*2*N1 : n_comp*2*N1+N1]
         column2._Tg_res = y_res2[:,n_comp*2*N2 : n_comp*2*N2+N2]
         return [[y_res1,column1._z, t_dom], [y_res2,column2._z, t_dom]]
-
-    
     
 # %% When only this code is run (name == main)
 if __name__ == '__main__':
-    N = 101
-    
-    D = 0.2
-    A_cros = D**2/4*np.pi
-    epsi = 0.4      # m^3/m^3
-    rho_s = 1000    # kg/m^3
-    dp = 0.02       # m (particle diameter)
-    mu = [1.81E-5, 1.81E-5, 1.81E-5] # Pa sec (visocisty of gas)
-    #mu_av = 1.81E-5
-    n_comp = 3
-    
-    # Column Geometry
-    L = 1
-    D = 0.2
-    N = 101
-    A_cros = D**2/4*np.pi
-    epsi = 0.4      # m^3/m^3
-    # Define a column    
-    n_comp = 3
-    c1 = column(L, A_cros,n_comp, N, E_balance=False)
-
-    # Adsorbent info
-    def isomix(P_in,T):
-        pp = []
-        for ii in range(len(P_in)):
-            p_tmp = P_in[ii][:]
-            #ind_tmp = P_in[ii] < 1E-4
-            #p_tmp[ind_tmp] = 0
-            pp.append(p_tmp)
-        q1 = 1*pp[0]*0.1/(1 + 0.1*pp[0] + 0.3*pp[1] + 0.4*pp[2])
-        q2 = 3*pp[1]*0.3/(1 + 0.1*pp[0] + 0.3*pp[1] + 0.4*pp[2])
-        q3 = 4*pp[2]*0.4/(1 + 0.1*pp[0] + 0.3*pp[1] + 0.4*pp[2])
-        return [q1, q2, q3]
-    c1.adsorbent_info(isomix, epsi, dp, rho_s,)
-    
-    # Gas properties
-    Mw = [28, 32, 44]
-    c1.gas_prop_info(Mw,mu)
-
-    # Mass transfer
-    k_MTC = [2.5, 2.5, 20.5]
-    D_disp = [1E-7, 1E-7, 1E-7] 
-    a_surf = 1
-    c1.mass_trans_info(k_MTC, a_surf, D_disp)
-
-    # Boundary conditions
-    P_out = 1.2
-    P_in = 1.7 # Ignore this
-    T_in = 300
-    y_in = [0.45, 0.3, 0.25]
-    Cv_in = 5E-3        # m^3/sec/bar
-    Cv_out = 5E-3       # m^3/sec/bar
-    u_feed = 0.1            # m/s
-    Q_in = u_feed*A_cros*epsi  # volumetric flowrate
-    c1.boundaryC_info(P_out, P_in, T_in, y_in, Cv_in,Cv_out,Q_in, 
-                      assigned_v_option = True, foward_flow_direction=True)
-    # Initial conditions
-    P_init = 2*np.ones([N,])
-    
-    y_init = [0.75*np.ones([N,]),
-              0.25*np.ones([N,]),
-              0.00*np.ones([N,])]
-    P_part = [0.75*np.ones([N,])*P_init,
-              0.25*np.ones([N,])*P_init,
-              0.00*np.ones([N,])*P_init]
-    Tg_init = 300*np.ones([N,])
-    Ts_init = 300*np.ones([N,])
-    q1,q2,q3 = isomix(P_part, Tg_init)
-    q_init = [q1,q2,q3]
-
-    c1.initialC_info(P_init, Tg_init, Ts_init, y_init, q_init )
-    print(c1)
-    
-    y_res, z_res, t_res = c1.run_ma_linvel(100,10)
-    c1.Graph(20, 0)
-
-    '''
     N = 11
     A_cros = 0.031416
     L = 1
     c1 = column(L,A_cros, n_component = 2,N_node = N)
-    '''
     '''
     dP = np.linspace(-100, 100)
     M_m_test  = [0.044, 0.028]      ## molar mass    (kg/mol)
@@ -3473,8 +2148,6 @@ if __name__ == '__main__':
     plt.plot(dP,v_test)
     plt.grid()
     plt.show()
-    '''
-
     '''
     ## Adsorbent
     isopar1 = [3.0, 1]
@@ -3490,7 +2163,7 @@ if __name__ == '__main__':
  
     epsi_test = 0.4         # macroscopic void fraction (m^3/m^3)
     D_particle_dia = 0.01   # particle diameter (m)
-    rho_s_test = 1100       # solid density (kg/m^3)
+    rho_s_test = 1100       # solid density (kg/mol)
     c1.adsorbent_info(iso_fn_test,epsi_test,D_particle_dia, rho_s_test)
  
     M_m_test  = [0.044, 0.028]      ## molar mass    (kg/mol)
@@ -3500,7 +2173,7 @@ if __name__ == '__main__':
     ## Mass transfer coefficients
     D_dis_test = [1E-6, 1E-6]   # m^2/sec
     k_MTC = [0.0002, 0.0002]    # m/sec
-    a_surf = 200                # m^2/m^3
+    a_surf = 400                # m^2/m^3
     c1.mass_trans_info(k_MTC, a_surf, D_dis_test)
 
     ## Thermal properties
@@ -3549,9 +2222,7 @@ if __name__ == '__main__':
     0.0*Cvin_test,Cvout_test,Q_in_test,False, foward_flow_direction=True)
     c2.boundaryC_info(Pout_test,Pin_test,Tin_test,yin_test,
     0.0*Cvin_test,0,Q_in_test,False, foward_flow_direction=True)
-    '''
 
-    '''
     step_P_eq(
         c1,c2,100,n_sec = 50,
         valve_select = [1,1],
@@ -3565,7 +2236,6 @@ if __name__ == '__main__':
     c2.Graph(10,2, loc =Legend_loc)
     c2.Graph(10,3, loc = Legend_loc)
     plt.show( )
-    '''
     
 # %%
 

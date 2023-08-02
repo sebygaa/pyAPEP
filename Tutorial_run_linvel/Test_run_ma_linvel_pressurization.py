@@ -1,6 +1,8 @@
 # %%
 # Importing the run_ma_linvel
-from simsep import *
+from pyapep import simsep
+import numpy as np
+import matplotlib.pyplot as plt
 
 # %%
 N = 101
@@ -24,7 +26,7 @@ epsi = 0.4      # m^3/m^3
 # %%
 # Define a column    
 n_comp = 3
-c1 = column(L, A_cros,n_comp, N, E_balance=False)
+c1 = simsep.column(L, A_cros,n_comp, N, E_balance=False)
 
 # %%
 # Adsorbent info
@@ -89,13 +91,19 @@ print(c1)
 y_res, z_res, t_res = c1.run_ma_linvel(100,10)
 # %%
 # Graph of 1st component
-c1.Graph(20, 0)
+c1.Graph(20, 0, 
+         yaxis_label= 'Gas Conc. Comp. 1 (mol/m$^3$)')
 # %%
-c1.Graph(20, 1)
+c1.Graph(20, 1, 
+         yaxis_label= 'Gas Conc. Comp. 2 (mol/m$^3$)')
 # %%
-c1.Graph(20,2)
+c1.Graph(20,2,
+         yaxis_label= 'Gas Conc. Comp. 3 (mol/m$^3$)')
 # %%
-c1.Graph(10,5, )
+c1.Graph(10,5,
+        yaxis_label= 'Uptake Comp. 3 (mol/kg)')
+# %% Pressure Graph in (bar)
+c1.Graph_P(10)
 # %%
 plt.plot(c1._z, c1._y_fra[0][0,:N])
 plt.plot(c1._z, c1._y_fra[0][1,:N])

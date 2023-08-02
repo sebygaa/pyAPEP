@@ -1929,6 +1929,7 @@ class column:
 
             toc = time.time()/60 - tic
             self._CPU_min = toc
+            self._Tg_res = y_result[:,n_comp*2*N : n_comp*2*N+N]
             if CPUtime_print:
                 print('Simulation of this step is completed.')
                 print('This took {0:9.3f} mins to run. \n'.format(toc))
@@ -2091,6 +2092,7 @@ class column:
 
             toc = time.time()/60 - tic
             self._CPU_min = toc
+            self._Tg_res = y_result[:,n_comp*2*N : n_comp*2*N+N]
             if CPUtime_print:
                 print('Simulation of this step is completed.')
                 print('This took {0:9.3f} mins to run. \n'.format(toc))
@@ -2254,6 +2256,7 @@ class column:
 
             toc = time.time()/60 - tic
             self._CPU_min = toc
+            self._Tg_res = y_result[:,n_comp*2*N : n_comp*2*N+N]
             if CPUtime_print:
                 print('Simulation of this step is completed.')
                 print('This took {0:9.3f} mins to run. \n'.format(toc))

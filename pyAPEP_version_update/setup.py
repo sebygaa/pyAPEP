@@ -5,7 +5,7 @@ with open('README', 'r') as fh:
 
 setuptools.setup(
         name='pyapep',
-        version='0.1.3',
+        version='0.1.5',
         author_email='sgasga@ulsan.ac.kr',
         description='Python package for adsorption process simulations',
         long_description_content_type='text/markdown',

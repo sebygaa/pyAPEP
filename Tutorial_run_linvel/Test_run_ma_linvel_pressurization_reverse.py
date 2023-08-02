@@ -1,6 +1,8 @@
 # %%
 # Importing the run_ma_linvel
-from simsep import *
+from pyapep import simsep
+import numpy as np
+import matplotlib.pyplot as plt
 
 # %%
 N = 101
@@ -24,7 +26,7 @@ epsi = 0.4      # m^3/m^3
 # %%
 # Define a column    
 n_comp = 3
-c1 = column(L, A_cros,n_comp, N, E_balance=False)
+c1 = simsep.column(L, A_cros,n_comp, N, E_balance=False)
 
 # %%
 # Adsorbent info
@@ -55,20 +57,20 @@ c1.mass_trans_info(k_MTC, a_surf, D_disp)
 
 # %%
 # Boundary conditions
-P_out = 1.2     # Important (during blowdown)
-P_in = 5.5      # Ignore This Value
+P_out = 1.2     # Ignore This Value
+P_in = 5.5      # Important (during pressurization)
 T_in = 300
 y_in = [0.45, 0.3, 0.25]
-Cv_in = 0           # m^3/sec/bar
-Cv_out = 5E-3       # m^3/sec/bar
+Cv_in = 5E-3        # m^3/sec/bar
+Cv_out = 0          # m^3/sec/bar
 u_feed = 0.1            # m/s
 Q_in = u_feed*A_cros*epsi  # volumetric flowrate
 c1.boundaryC_info(P_out, P_in, T_in, y_in, Cv_in,Cv_out,Q_in, 
-                    assigned_v_option = True, foward_flow_direction=True)
+                    assigned_v_option = True, foward_flow_direction=False)
 
 # %%
 # Initial conditions
-P_init = 2.5*np.ones([N,])
+P_init = 1.5*np.ones([N,])
 
 y_init = [0.75*np.ones([N,]),
             0.25*np.ones([N,]),
@@ -89,13 +91,21 @@ print(c1)
 y_res, z_res, t_res = c1.run_ma_linvel(100,10)
 # %%
 # Graph of 1st component
-c1.Graph(20, 0)
+c1.Graph(20, 0, 
+         yaxis_label= 'Gas Conc. Comp. 1 (mol/m$^3$)')
 # %%
-c1.Graph(20, 1)
+c1.Graph(20, 1, 
+         yaxis_label= 'Gas Conc. Comp. 2 (mol/m$^3$)')
 # %%
-c1.Graph(20,2)
+c1.Graph(20,2,
+         yaxis_label= 'Gas Conc. Comp. 3 (mol/m$^3$)')
 # %%
-c1.Graph(10,4, )
+c1.Graph(10,5,
+        yaxis_label= 'Uptake Comp. 3 (mol/kg)')
+
+# %% Pressure Graph in (bar)
+c1.Graph_P(10)
+
 # %%
 plt.plot(c1._z, c1._y_fra[0][0,:N])
 plt.plot(c1._z, c1._y_fra[0][1,:N])
