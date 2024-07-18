@@ -459,7 +459,7 @@ class column:
         y0 = np.concatenate(y0_tmp)
         
         #RUN
-        y_result = odeint(massmomebal,y0,t_dom,)
+        y_result = odeint(massmomebal,y0,t_dom,rtol=1e-6, atol=1e-9)
         
         if self._required['Flow direction'] == 'Backward':
             y_tmp = []
@@ -563,7 +563,7 @@ class column:
         y0 = np.concatenate(y0_tmp)
         
         #RUN
-        y_result = odeint(massonly, y0, t_dom,)
+        y_result = odeint(massonly, y0, t_dom, rtol=1e-6, atol=1e-9)
         
         if self._required['Flow direction'] == 'Backward':
             y_tmp = []
@@ -690,7 +690,7 @@ class column:
         aa0 = U_cut.T@y0
 
         #RUN
-        aa_result = odeint(massonly, aa0, t_dom,)
+        aa_result = odeint(massonly, aa0, t_dom, rtol=1e-6, atol=1e-9)
         y_result = aa_result@U_cut.T
         
         if self._required['Flow direction'] == 'Backward':
@@ -846,7 +846,7 @@ class column:
         aa0 = U_cut.T@y0
 
         #RUN
-        aa_result = odeint(massmomebal,aa0,t_dom,)
+        aa_result = odeint(massmomebal,aa0,t_dom, rtol=1e-6, atol=1e-9)
         
         # Rolling back to Original coordinate
         y_result = aa_result@U_cut.T
@@ -1024,7 +1024,7 @@ class column:
         y0 = np.concatenate(y0_tmp)
         
         #RUN
-        y_result = odeint(massmomeenerbal_alt,y0,t_dom,)
+        y_result = odeint(massmomeenerbal_alt,y0,t_dom, rtol=1e-6, atol=1e-9)
         
         if self._required['Flow direction'] == 'Backward':
             y_tmp = []
@@ -1206,7 +1206,7 @@ class column:
         y0 = np.concatenate(y0_tmp)
         
         #RUN
-        y_result = odeint(massmomeenerbal,y0, t_dom,)
+        y_result = odeint(massmomeenerbal,y0, t_dom, rtol=1e-6, atol=1e-9)
         #y_ivp = solve_ivp(massmomeenerbal,t_dom, y0,method = 'BDF')
         #y_result = y_ivp.y
         C_sum = 0
@@ -1444,7 +1444,7 @@ class column:
         y0 = np.concatenate(y0_tmp)
         aa0 = U_cut.T@y0
         #RUN
-        a_result = odeint(massmomeenerbal, aa0, t_dom,)
+        a_result = odeint(massmomeenerbal, aa0, t_dom, rtol=1e-6, atol=1e-9)
         y_result = a_result@U_cut.T
         #y_ivp = solve_ivp(massmomeenerbal,t_dom, y0,method = 'BDF')
         #y_result = y_ivp.y
@@ -1884,7 +1884,7 @@ class column:
                 y0 = y0_rev
                 
             # Solve ode
-            y_result = odeint(massbal_linvel, y0, t_dom,)
+            y_result = odeint(massbal_linvel, y0, t_dom, rtol=1e-6, atol=1e-9)
             
             # BACKWARD FLOW !! #
             # Flipped one for backward flow
@@ -2048,7 +2048,7 @@ class column:
                 y0 = y0_rev
                 
             # Solve ode
-            y_result = odeint(massbal_linvel, y0, t_dom)
+            y_result = odeint(massbal_linvel, y0, t_dom, rtol=1e-6, atol=1e-9)
 
             # BACKWARD FLOW !! Flip the results#
             if self._required['Flow direction'] == 'Backward':
@@ -2212,7 +2212,7 @@ class column:
                 y0 = y0_rev
                 
             # Solve ode
-            y_result = odeint(massbal_linvel, y0, t_dom)
+            y_result = odeint(massbal_linvel, y0, t_dom, rtol=1e-6, atol=1e-9)
 
             # BACKWARD FLOW !! Flip the results#
             if self._required['Flow direction'] == 'Backward':
@@ -2659,7 +2659,7 @@ n_sec=5, Cv_btw=0.1, valve_select = [1,1], CPUtime_print = False):
         t_dom_tenth = np.concatenate((t_dom_tenth, [t_max/10]))
     
     #RUN1
-    y_res = odeint(massmomeenbal_eq_gasonly, y0_tot_gas,t_dom_tenth)
+    y_res = odeint(massmomeenbal_eq_gasonly, y0_tot_gas,t_dom_tenth, rtol=1e-6, atol=1e-9)
 
     # Update concentration
     y0_tot[:N1*n_comp] = y_res[-1,:N1*n_comp]
@@ -2669,7 +2669,7 @@ n_sec=5, Cv_btw=0.1, valve_select = [1,1], CPUtime_print = False):
     y0_tot[-2*N2:-1*N2] = T_mean*np.ones(N2)
     
     #RUN2
-    y_res = odeint(massmomeenbal_eq, y0_tot,t_dom)
+    y_res = odeint(massmomeenbal_eq, y0_tot,t_dom, rtol=1e-6, atol=1e-9)
     y_res1 = y_res[:,:n_var_tot1]
     y_res2 = y_res[:,n_var_tot1:]
     if flip1_later:
@@ -2993,7 +2993,7 @@ n_sec=5, Cv_btw=0.1, valve_select = [1,1], CPUtime_print = False):
         return dydt         
     
     #RUN
-    y_res = odeint(massmomeenbal_eq, y0_tot,t_dom)
+    y_res = odeint(massmomeenbal_eq, y0_tot,t_dom, rtol=1e-6, atol=1e-9)
     y_res1 = y_res[:,:n_var_tot1]
     y_res2 = y_res[:,n_var_tot1:]
     if flip1_later:
@@ -3311,7 +3311,7 @@ n_sec=5, Cv_btw=0.1, valve_select = [1,1], CPUtime_print = False):
         return dydt         
 
     #RUN
-    y_res = odeint(massmomeenbal_eq, y0_tot,t_dom)
+    y_res = odeint(massmomeenbal_eq, y0_tot,t_dom, rtol=1e-6, atol=1e-9)
     y_res1 = y_res[:,:n_var_tot1]
     y_res2 = y_res[:,n_var_tot1:]
     C_sum = 0
