@@ -1,13 +1,17 @@
 import setuptools
 
-with open('README', 'r') as fh:
+#with open('README', 'r') as fh:
+#    long_description = fh.read()
+
+with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
         name='pyapep',
-        version='0.1.5',
+        version='0.1.8',
         author_email='sgasga@ulsan.ac.kr',
         description='Python package for adsorption process simulations',
+        long_description=long_description,
         long_description_content_type='text/markdown',
         url='https://sebygaa.github.io/pyAPEP/',
         packages=setuptools.find_packages(),

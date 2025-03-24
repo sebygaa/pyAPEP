@@ -3,7 +3,11 @@
 import numpy as np
 
 # scipy
-from scipy.integrate import trapz
+try:
+    from scipy.integrate import trapz
+except:
+    from scipy.integrate import trapezoid as trapz
+    
 from scipy.optimize import minimize
 from scipy.optimize import shgo
 from scipy.optimize import differential_evolution

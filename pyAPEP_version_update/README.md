@@ -1,16 +1,3 @@
-Metadata-Version: 2.1
-Name: pyapep
-Version: 0.1.8
-Summary: Python package for adsorption process simulations
-Home-page: https://sebygaa.github.io/pyAPEP/
-Author: Seongbin Ga
-Author-email: sgasga@ulsan.ac.kr
-Requires-Python: >=3.6
-Description-Content-Type: text/markdown
-Requires-Dist: numpy>=1.20.0
-Requires-Dist: scipy>=1.5.0
-Requires-Dist: matplotlib>=3.0.0
-
 # pyAPEP Package Reference
 
 **pyAPEP** (Python Adsorption Process Evaluation Package) is an all-in-one toolkit for evaluating adsorbent performance through process simulation. It comprises three main modules, each corresponding to a subpackage:
